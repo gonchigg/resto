@@ -15,7 +15,7 @@
   * The histogram of all tables
   * The probability of the Queue of being altered
 
-### Usage
+## Usage
 
   * **calculate_probs.py** calculates the probability in function of the time.
     * **Simulation time:** defined inside the program
