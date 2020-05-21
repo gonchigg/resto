@@ -1,4 +1,4 @@
-# resto project
+# Resto/Bar project
 
 ### Program to handle a waiting queue on a resto/bar and inform to the waiters the waiting time.
 
