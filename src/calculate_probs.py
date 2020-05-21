@@ -1,12 +1,12 @@
-import My
+import Resto
 import datetime as dt
 
 # Cargo mesas y cola vacias
-resto = My.load_resto(file="input_jsons/resto_vacio.json", cant_mesas=22)
-cola = My.load_cola(file="input_jsons/cola_vacia.json", cant_clients=0)
+resto = Resto.load_resto(file="input_jsons/resto_vacio.json", cant_mesas=22)
+cola = Resto.load_cola(file="input_jsons/cola_vacia.json", cant_clients=0)
 # Registro de llegadas y levantadas
-cola.registro_de_llegadas = My.giveme_llegadas(resto.mesas, plot=False, paso=15)
-resto.levantadas = My.giveme_levantadas(resto)
+cola.registro_de_llegadas = Resto.giveme_llegadas(resto.mesas, plot=False, paso=15)
+resto.levantadas = Resto.giveme_levantadas(resto)
 # resto.print_resto()
 # cola.print_cola()
 
