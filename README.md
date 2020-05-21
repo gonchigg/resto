@@ -17,15 +17,15 @@
 
 ### Usage
 
-* **calculate_probs.py** calculates the probability in function of the time.
- * **Simulation time:** defined inside the program
- * **Resto initial state:** defined in input_jsons/resto_vacio.json
- * **Queue initial state:** defined in input_jsons/cola_vacia.json
- * **Probability function of the tables:** defined in input_jsons/resto_vacio.json
- * **Probability function of the Queue:** defined inside *My.giveme_llegadas*
+  * **calculate_probs.py** calculates the probability in function of the time.
+    * **Simulation time:** defined inside the program
+    * **Resto initial state:** defined in input_jsons/resto_vacio.json
+    * **Queue initial state:** defined in input_jsons/cola_vacia.json
+    * **Probability function of the tables:** defined in input_jsons/resto_vacio.json
+    * **Probability function of the Queue:** defined inside *My.giveme_llegadas*
 
-* **calculate_statistics.py** calculates statistics of the program to see how it is going.
+  * **calculate_statistics.py** calculates statistics of the program to see how it is going.
 
-* **Tree** inside it is defined the class *Tree* that it is used to calculate all the possibilities of arraging the clients in the tables
+  * **Tree** inside it is defined the class *Tree* that it is used to calculate all the possibilities of arraging the clients in the tables
 
-* **My** inside are defined the classes Cola, Resto, Mesas, Clientes used to managing those.
+  * **My** inside are defined the classes Cola, Resto, Mesas, Clientes used to managing those.
