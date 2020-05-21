@@ -26,6 +26,6 @@
 
   * **calculate_statistics.py** calculates statistics of the program to see how it is going.
 
-  * **Tree** inside it is defined the class *Tree* that it is used to calculate all the possibilities of arraging the clients in the tables
-
-  * **My** inside are defined the classes Cola, Resto, Mesas, Clientes used to managing those.
+  * **My.py** inside are defined the classes Cola, Resto, Mesas, Clientes used to managing those.
+  
+  * **Tree.py** inside it is defined the class *Tree* that it is used to calculate all the possibilities of arraging the clients in the tables
