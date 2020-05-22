@@ -15,33 +15,9 @@ import random
 import Auxiliar as Aux
 from prettytable import PrettyTable
 
-"""
-    Que hace
-
-    Parameters
-    ----------
-    a : Que es, optional-non-optional
-        Para qur sirve
-
-    Returns
-    -------
-    m : Que es
-        Para que sirve
-
-    Notes
-    -----
-    Lo que vos quieras
-
-    Examples
-    --------
-    >>> a = np.array([[1, 2], [3, 4]])
-    >>> np.mean(a)
-    2.5
-    >>> np.mean(a, axis=0)"""
-
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------
 # Sub-classes: table, Client.
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------
 class Table:
     """ Class used to simulate and handle all the data relationed to each Table.
         Parameters
@@ -94,11 +70,11 @@ class Client:
         self.t_arrival = t_arrival
 
 
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------
 # Main-Classes: Queue, Resto
 #       Queue ~ List of Clients, and methods
 #       Resto ~ List of Tables, and methods
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------
 class Queue:
     def __init__(self):
         self.queue = []
@@ -285,11 +261,9 @@ class Resto:
             print(x)
 
 
-# ------------------------------------------------------------------------------
+# ------------------------------------------------------------------------------------------
 # Auxiliar Functions
-# ------------------------------------------------------------------------------
-
-
+# ------------------------------------------------------------------------------------------
 def load_resto(file="input_jsons/resto.json", cant_tables=20):
     """ loads the state of the resto/bar and return an object Resto
 
@@ -406,7 +380,6 @@ def giveme_arrivals(
             The quantity of arrivals is len(tables)*quantity_factor.
             Each Tuple has the time as a datetime.datetime object in the first element and the amount of persons in the group in the second element.
             The list is sorted by time in ascending order.
-
     """
 
     def _func_arrivals_density(x):
@@ -484,6 +457,7 @@ def giveme_arrivals(
         return (0) / normalizacion
 
     def _random_date(t_max, t_min):
+        """ returns a random datetime.datetime between t_max and t_min"""
         t_max = t_max.timestamp()
         t_min = t_min.timestamp()
         delta = t_max - t_min
@@ -492,6 +466,7 @@ def giveme_arrivals(
         return t
 
     def random_cant(proportions):
+        """ return a random index+2 taking into account the weights inside the array"""
         p = np.array(proportions)
         p = np.cumsum(p / np.sum(p))
         r = np.random.random_sample()
@@ -500,12 +475,15 @@ def giveme_arrivals(
                 return i + 2
 
     t = []
+    # total of arrivals
     total = len(tables) * quantity_factor
     t_min = dt.datetime.today()
     t_min = t_min.replace(hour=18, minute=30, second=30, microsecond=0)
     t_max = t_min.replace(hour=0, minute=0, second=0, microsecond=0) + dt.timedelta(
         days=1
     )
+    # not in all cicles it will get a valida arrival, the reason is in the escence of the probabilistic behaviour
+    # loop until it has the amount of arrivals desired
     while len(t) < total:
         date = _random_date(t_min, t_max)
         val = _func_arrivals_density(date)
@@ -520,6 +498,10 @@ def giveme_arrivals(
 
 
 def giveme_departures(resto):
+    """ given one of the histograms in resto, it simulates the amount of time group of clients is going to be in each table
+        returns a list with one sublist for each table.
+        each item on the sublists has the amount of time in minutes of a groupf of clients. 
+    """
     departures = []
     for table in resto.tables:
         media, dispersion = (
@@ -531,9 +513,8 @@ def giveme_departures(resto):
     return departures
 
 
-################################################################################
+############################################################################################
 # Main
-################################################################################
-
+############################################################################################
 if __name__ == "__main__":
     pass
