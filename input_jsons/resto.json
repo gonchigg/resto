@@ -1,30 +1,223 @@
-{   "mesas":[
-        {"name":"mesa_01", "capacidad":[2],   "state":"ocupada", "t_in":"19:22", "hist_id":"id_01"},
-        {"name":"mesa_02", "capacidad":[4],   "state":"ocupada", "t_in":"19:12", "hist_id":"id_01"},
-        {"name":"mesa_03", "capacidad":[4],   "state":"ocupada", "t_in":"19:45", "hist_id":"id_01"},
-        {"name":"mesa_04", "capacidad":[2,3], "state":"ocupada", "t_in":"19:43", "hist_id":"id_01"},
-        {"name":"mesa_05", "capacidad":[3,4], "state":"ocupada", "t_in":"19:21", "hist_id":"id_01"},
-        {"name":"mesa_06", "capacidad":[2],   "state":"ocupada", "t_in":"19:23", "hist_id":"id_01"},
-        {"name":"mesa_07", "capacidad":[2],   "state":"ocupada", "t_in":"19:43", "hist_id":"id_01"},
-        {"name":"mesa_08", "capacidad":[4],   "state":"ocupada", "t_in":"19:12", "hist_id":"id_01"},
-        {"name":"mesa_09", "capacidad":[2],   "state":"ocupada", "t_in":"19:32", "hist_id":"id_01"},
-        {"name":"mesa_10", "capacidad":[2],   "state":"ocupada", "t_in":"19:11", "hist_id":"id_01"},
-        {"name":"mesa_11", "capacidad":[4],   "state":"ocupada", "t_in":"19:21", "hist_id":"id_01"},
-        {"name":"mesa_12", "capacidad":[2,3], "state":"ocupada", "t_in":"19:23", "hist_id":"id_01"},
-        {"name":"mesa_13", "capacidad":[3,4], "state":"ocupada", "t_in":"19:21", "hist_id":"id_01"},
-        {"name":"mesa_14", "capacidad":[2,3], "state":"ocupada", "t_in":"19:27", "hist_id":"id_01"},
-        {"name":"mesa_15", "capacidad":[3,4], "state":"ocupada", "t_in":"19:37", "hist_id":"id_01"},
-        {"name":"mesa_16", "capacidad":[2],   "state":"ocupada", "t_in":"19:27", "hist_id":"id_01"},
-        {"name":"mesa_17", "capacidad":[2],   "state":"ocupada", "t_in":"19:13", "hist_id":"id_01"},
-        {"name":"mesa_18", "capacidad":[4],   "state":"ocupada", "t_in":"19:37", "hist_id":"id_01"},
-        {"name":"mesa_19", "capacidad":[2],   "state":"ocupada", "t_in":"19:47", "hist_id":"id_01"},
-        {"name":"mesa_20", "capacidad":[4],   "state":"ocupada", "t_in":"19:52", "hist_id":"id_01"},
-        {"name":"mesa_21", "capacidad":[2],   "state":"ocupada", "t_in":"19:24", "hist_id":"id_01"},
-        {"name":"mesa_22", "capacidad":[2],   "state":"ocupada", "t_in":"19:24", "hist_id":"id_01"}],
-    "cant_mesas":22,
-    "hists":[
-        {"hist_id":"id_01", "media":50, "dispersion":10},
-        {"hist_id":"id_02", "media":60, "dispersion":12}],
-    "t_max_sim":120,
-    "paso_de_tiempo":5
+{
+    "tables": [
+        {
+            "name": "table_01",
+            "capacity": [
+                2
+            ],
+            "state": "taken",
+            "t_in": "19:22",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_02",
+            "capacity": [
+                4
+            ],
+            "state": "taken",
+            "t_in": "19:12",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_03",
+            "capacity": [
+                4
+            ],
+            "state": "taken",
+            "t_in": "19:45",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_04",
+            "capacity": [
+                2,
+                3
+            ],
+            "state": "taken",
+            "t_in": "19:43",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_05",
+            "capacity": [
+                3,
+                4
+            ],
+            "state": "taken",
+            "t_in": "19:21",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_06",
+            "capacity": [
+                2
+            ],
+            "state": "taken",
+            "t_in": "19:23",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_07",
+            "capacity": [
+                2
+            ],
+            "state": "taken",
+            "t_in": "19:43",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_08",
+            "capacity": [
+                4
+            ],
+            "state": "taken",
+            "t_in": "19:12",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_09",
+            "capacity": [
+                2
+            ],
+            "state": "taken",
+            "t_in": "19:32",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_10",
+            "capacity": [
+                2
+            ],
+            "state": "taken",
+            "t_in": "19:11",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_11",
+            "capacity": [
+                4
+            ],
+            "state": "taken",
+            "t_in": "19:21",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_12",
+            "capacity": [
+                2,
+                3
+            ],
+            "state": "taken",
+            "t_in": "19:23",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_13",
+            "capacity": [
+                3,
+                4
+            ],
+            "state": "taken",
+            "t_in": "19:21",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_14",
+            "capacity": [
+                2,
+                3
+            ],
+            "state": "taken",
+            "t_in": "19:27",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_15",
+            "capacity": [
+                3,
+                4
+            ],
+            "state": "taken",
+            "t_in": "19:37",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_16",
+            "capacity": [
+                2
+            ],
+            "state": "taken",
+            "t_in": "19:27",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_17",
+            "capacity": [
+                2
+            ],
+            "state": "taken",
+            "t_in": "19:13",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_18",
+            "capacity": [
+                4
+            ],
+            "state": "taken",
+            "t_in": "19:37",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_19",
+            "capacity": [
+                2
+            ],
+            "state": "taken",
+            "t_in": "19:47",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_20",
+            "capacity": [
+                4
+            ],
+            "state": "taken",
+            "t_in": "19:52",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_21",
+            "capacity": [
+                2
+            ],
+            "state": "taken",
+            "t_in": "19:24",
+            "hist_id": "id_01"
+        },
+        {
+            "name": "table_22",
+            "capacity": [
+                2
+            ],
+            "state": "taken",
+            "t_in": "19:24",
+            "hist_id": "id_01"
+        }
+    ],
+    "cant_tables": 22,
+    "hists": [
+        {
+            "hist_id": "id_01",
+            "media": 50,
+            "dispersion": 10
+        },
+        {
+            "hist_id": "id_02",
+            "media": 60,
+            "dispersion": 12
+        }
+    ],
+    "t_max_sim": 120,
+    "time_step": 5
 }

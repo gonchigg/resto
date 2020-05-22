@@ -3,17 +3,17 @@
     =====
 
     Provides
-        1. Classes `Cola` and `Resto` to handle each.
-        2. Sub-classes `Mesa` and `Client` to handle each.
-        3. Functions as `load_resto()`, `load_cola()` to load data from .jsons.
-        4. Functions as `giveme_llegadas()`, `giveme_levantadas` to hablde both events."""
+        1. Classes `Queue` and `Resto` to handle each.
+        2. Sub-classes `Table` and `Client` to handle each.
+        3. Functions as `load_resto()`, `load_queue()` to load data from .jsons.
+        4. Functions as `giveme_arrivals()`, `giveme_departures` to hablde both events."""
 
 import numpy as np
 import datetime as dt
 import json
 import random
 import Auxiliar as Aux
-from prettytable import PrettyTable 
+from prettytable import PrettyTable
 
 """
     Que hace
@@ -40,15 +40,15 @@ from prettytable import PrettyTable
     >>> np.mean(a, axis=0)"""
 
 # ------------------------------------------------------------------------------
-# Sub-classes: Mesa, Client.
+# Sub-classes: table, Client.
 # ------------------------------------------------------------------------------
-class Mesa:
+class Table:
     """ Class used to simulate and handle all the data relationed to each Table.
         Parameters
         ----------
         name: string, non-optional.
             Unique identity of each Table.
-        capacidad: list of ints, non-optional.
+        capacity: list of ints, non-optional.
             Amount of Clients thath can sit in each table.
         t_in: datetime.datetime object, non-optional.
             Time in which the Table was last ocuppied.
@@ -58,17 +58,21 @@ class Mesa:
             State of the Table belonging to the variable 'states'.
         client: Client object, non-optional.
             Object of the client that is currently on the Table."""
-    states = ("ocupada","vacia","inactiva") # All possiblle states of a Table
-    def __init__(self, name, capacidad, t_in, hist_id, state="vacia", client=None):
+
+    states = ("taken", "empty", "inactive")  # All possiblle states of a Table
+
+    def __init__(self, name, capacity, t_in, hist_id, state="empty", client=None):
         """Initialize the Class Table:"""
         self.name = name
         self.client = client
-        self.capacidad = capacidad
+        self.capacity = capacity
         self.t_in = t_in
         if state not in self.states:
             raise ValueError("%s is not a valid title." % state)
         self.state = state
         self.hist_id = hist_id
+
+
 class Client:
     """ Class used to simulate and handle all the data relationed to each Client.
         Parameters
@@ -79,288 +83,453 @@ class Client:
             Amount of people willing to be located.
         code: int, non-optional.
             Unique code to identify the client.
-        t_llegada: datetime.datetime object, non-optional.
-            Time at which the client put himself on the Cola"""
-    def __init__(self, name, code, cant, t_llegada=None):
+        t_arrival: datetime.datetime object, non-optional.
+            Time at which the client arrive at the queue"""
+
+    def __init__(self, name, code, cant, t_arrival=None):
         """Initialize the Class Client:"""
         self.name = name
         self.code = code
         self.cant = cant
-        self.t_llegada = t_llegada
-# ------------------------------------------------------------------------------
-# Main-Classes: Cola, Resto
-#       Cola ~ List of Clients, and methods
-#       Resto ~ List of Mesas, and methods
-# ------------------------------------------------------------------------------
-class Cola:
-    def __init__(self):
-        self.cola = []
-        self.registro_de_llegadas = None
+        self.t_arrival = t_arrival
 
-    def add_client(self,cant,name="",t_llegada=dt.datetime.today()):
-        codes = list(filter(lambda client: client.code,self.cola))
-        code  = np.random.randint(low=0,high=9999)
+
+# ------------------------------------------------------------------------------
+# Main-Classes: Queue, Resto
+#       Queue ~ List of Clients, and methods
+#       Resto ~ List of Tables, and methods
+# ------------------------------------------------------------------------------
+class Queue:
+    def __init__(self):
+        self.queue = []
+        self.arrivals_register = None
+
+    def add_client(self, cant, name="", t_arrival=dt.datetime.today()):
+        codes = list(filter(lambda client: client.code, self.queue))
+        code = np.random.randint(low=0, high=9999)
         while code in codes:
-                code = np.random.randint(low=0,high=9999)
-        if name=="":
+            code = np.random.randint(low=0, high=9999)
+        if name == "":
             name = f"Juan_{code:04d}"
-        client = Client(name=name,code=code,cant=cant,t_llegada=t_llegada)
-        self.cola.append(client)
+        client = Client(name=name, code=code, cant=cant, t_arrival=t_arrival)
+        self.queue.append(client)
         return client
 
-    def actualizar_llegadas(self,now,verbose=False):
-        if verbose: print(f"Actualizando llegadas")
-        if self.registro_de_llegadas != [] :
-            if self.registro_de_llegadas[0][0] < now:
+    def update_arrivals(self, now, verbose=False):
+        if verbose:
+            print(f"Updating arrivals")
+        if self.arrivals_register != []:
+            if self.arrivals_register[0][0] < now:
                 cond = True
             else:
                 cond = False
         else:
             cond = False
-        llegadas = []
-        while cond: 
-            llegada = self.registro_de_llegadas.pop(0)
-            if verbose: print(f"    llegó cliente a las:{llegada[0].strftime('%H:%M:%S')}, son:{llegada[1]}")
-            client = self.add_client(cant=llegada[1],t_llegada=llegada[0])
-            llegadas.append(client)
-            if self.registro_de_llegadas != [] :
-                if self.registro_de_llegadas[0][0] < now:
+        arrivals = []
+        while cond:
+            arrival = self.arrivals_register.pop(0)
+            if verbose:
+                print(
+                    f"    Client arrived at:{arrival[0].strftime('%H:%M:%S')}, they are:{arrival[1]}"
+                )
+            client = self.add_client(cant=arrival[1], t_arrival=arrival[0])
+            arrivals.append(client)
+            if self.arrivals_register != []:
+                if self.arrivals_register[0][0] < now:
                     cond = True
                 else:
                     cond = False
             else:
                 cond = False
-        
-    def print_cola(self):
+
+    def print_queue(self):
         x = PrettyTable()
-        x.title = "Cola"
-        x.field_names = ["numero","name","cantidad","codigo"] 
-        for i,client in enumerate(self.cola):
-            x.add_row( [i, client.name, client.cant, client.code] )
+        x.title = "Queue"
+        x.field_names = ["numero", "name", "cantidad", "codigo"]
+        for i, client in enumerate(self.queue):
+            x.add_row([i, client.name, client.cant, client.code])
         print(x)
+
 
 class Resto:
     def __init__(self):
-        self.mesas = []
+        self.tables = []
         self.hists = {}
-        self.levantadas = []
+        self.departures = []
 
-    def add_hist(self,hist,hist_id,media,dispersion):
-        self.hists[f"{hist_id}"] =  {"media":media,"dispersion":dispersion,"hist":hist/sum(hist),"hist_acum":np.cumsum(hist/sum(hist))} 
+    def add_hist(self, hist, hist_id, media, dispersion):
+        self.hists[f"{hist_id}"] = {
+            "media": media,
+            "dispersion": dispersion,
+            "hist": hist / sum(hist),
+            "hist_acum": np.cumsum(hist / sum(hist)),
+        }
 
-    def add_mesa(self,name="",capacidad=[],t_in=dt.datetime.today(),state="vacia",hist_id="hist_01",client=None):
-        if name=="":
-            name = f"mesa_{len(self.mesas+1):02d}"
-        self.mesas.append( Mesa(name=name,capacidad=capacidad,t_in=t_in,state=state,hist_id=hist_id,client=client) )
+    def add_table(
+        self,
+        name="",
+        capacity=[],
+        t_in=dt.datetime.today(),
+        state="empty",
+        hist_id="hist_01",
+        client=None,
+    ):
+        if name == "":
+            name = f"table_{len(self.tables+1):02d}"
+        self.tables.append(
+            Table(
+                name=name,
+                capacity=capacity,
+                t_in=t_in,
+                state=state,
+                hist_id=hist_id,
+                client=client,
+            )
+        )
 
-    def actualizar_levantadas(self,now,verbose=False):
-        if verbose: print(f"Actualizando levantadas en mesas")
-        levantadas = []
-        for i,mesa in enumerate(self.mesas):
-            if mesa.state == 'ocupada':
-                if ((now - mesa.t_in).total_seconds())/60 > self.levantadas[i][0] : 
-                    t_out = mesa.t_in + dt.timedelta(minutes=self.levantadas[i][0])
-                    if verbose: print(f"    Se levanto mesa:{mesa.name}, con cliente:{mesa.client.name} a las:{t_out}")
-                    levantadas.append( [mesa.client.cant, mesa.client.t_llegada, mesa.t_in, t_out, mesa.t_in - mesa.client.t_llegada, t_out - mesa.t_in, t_out - mesa.client.t_llegada] )
-                    (self.levantadas[i]).pop(0)
-                    mesa.state = 'vacia'
-        return levantadas
+    def update_departures(self, now, verbose=False):
+        if verbose:
+            print(f"Updating departures on Tabless")
+        departures = []
+        for i, table in enumerate(self.tables):
+            if table.state == "taken":
+                if ((now - table.t_in).total_seconds()) / 60 > self.departures[i][0]:
+                    t_out = table.t_in + dt.timedelta(minutes=self.departures[i][0])
+                    if verbose:
+                        print(
+                            f"    Table:{table.name} has stand up, with client:{table.client.name} at:{t_out}"
+                        )
+                    departures.append(
+                        [
+                            table.client.cant,
+                            table.client.t_arrival,
+                            table.t_in,
+                            t_out,
+                            table.t_in - table.client.t_arrival,
+                            t_out - table.t_in,
+                            t_out - table.client.t_arrival,
+                        ]
+                    )
+                    (self.departures[i]).pop(0)
+                    table.state = "empty"
+        return departures
 
-    def actualizar_sentadas(self,cola,now,verbose=False):
-        if verbose: print("Actualizando sentadas")
-        mesas_vacias = list(filter(lambda mesa:mesa.state=='vacia', self.mesas))
-            
-        if mesas_vacias:
-            if cola.cola:
-                new_cola = []
-                for i,client in enumerate(cola.cola):
-                    mesas_validas = list(filter(lambda mesa: (mesa.state=='vacia')and(client.cant in mesa.capacidad), mesas_vacias))            
-                    if mesas_validas:
-                        mesa = random.choice(mesas_validas)
-                        mesa.state, mesa.t_in, mesa.client = 'ocupada', now, client
-                        if verbose: print(f"    Se sento al cliente:{client.name} en la mesa:{mesa.name}")
-                    else:
-                        new_cola.append(client)
-                        if verbose: print(f"    No hay mesas disponibles (de:{client.cant}) para el cliente:{client.name}")
-                cola.cola = new_cola
+    def update_sits(self, queue, now, verbose=False):
+        if verbose:
+            print("Updating sits")
+        empty_tables = list(filter(lambda table: table.state == "empty", self.tables))
+
+        if empty_tables:  # If there are empty tables
+            if queue.queue:  # If there are clients in the Queue
+                new_queue = []  # New Queue wont have the Clients that haven't sit
+                for i, client in enumerate(
+                    queue.queue
+                ):  # For each client see if it can sit: going in order of priority
+                    # Get tables where the client can sit
+                    valid_tables = list(
+                        filter(
+                            lambda table: (table.state == "empty")
+                            and (client.cant in table.capacity),
+                            empty_tables,
+                        )
+                    )
+                    if valid_tables:  # if there are valid tables for the client
+                        table = random.choice(valid_tables)  # Choose one randomly
+                        table.state, table.t_in, table.client = (
+                            "taken",
+                            now,
+                            client,
+                        )  # Update the state of the table
+                        if verbose:
+                            print(
+                                f"    Client:{client.name} sit down in table:{table.name}"
+                            )
+                    else:  # If the Client doesn´t sit it will be in the new_queue if not he will not be
+                        new_queue.append(client)
+                        if verbose:
+                            print(
+                                f"    No tables available (of:{client.cant}) for client:{client.name}"
+                            )
+                queue.queue = new_queue
             else:
-                if verbose: print("    No hay clientes en la cola")
+                if verbose:
+                    print("    No clients in queue")
         else:
-            if verbose: print("    No hay mesas vacias")
+            if verbose:
+                print("    No empty Tables")
 
-    def print_resto(self,hists=False):
+    def print_resto(self, hists=False):
         x = PrettyTable()
-        x.title = "Mesas"
-        x.field_names = ["name", "capacidad", "state","t_in", "hist_id"]
-        for mesa in self.mesas:
-            if mesa.state == "vacia":
-                x.add_row( [mesa.name, mesa.capacidad , mesa.state, "-", mesa.hist_id] )
-            if mesa.state == "ocupada":
-                x.add_row( [mesa.name, mesa.capacidad , mesa.state, mesa.t_in.strftime("%H:%M"), mesa.hist_id] )
+        x.title = "Tables"
+        x.field_names = ["name", "capacity", "state", "t_in", "hist_id"]
+        for table in self.tables:
+            if table.state == "empty":
+                x.add_row([table.name, table.capacity, table.state, "-", table.hist_id])
+            if table.state == "taken":
+                x.add_row(
+                    [
+                        table.name,
+                        table.capacity,
+                        table.state,
+                        table.t_in.strftime("%H:%M"),
+                        table.hist_id,
+                    ]
+                )
         print(x)
         if hists:
             x = PrettyTable()
             x.title = "Histogramas"
-            x.field_names = ["hist_id","len(counts)","len(couns_acum)"]
+            x.field_names = ["hist_id", "len(counts)", "len(couns_acum)"]
             for hist in self.hists:
-                x.add_row( [hist["hist_id"], len(hist["hist"]), len(hist["hist_acum"]) ] )
+                x.add_row([hist["hist_id"], len(hist["hist"]), len(hist["hist_acum"])])
             print(x)
+
 
 # ------------------------------------------------------------------------------
 # Auxiliar Functions
 # ------------------------------------------------------------------------------
 
-def load_resto(cant_mesas=20,file="input_jsons/resto.json"):
+
+def load_resto(file="input_jsons/resto.json", cant_tables=20):
+    """ loads the state of the resto/bar and return an object Resto
+
+        Parameters
+        ----------
+            file: string, optional. Default input_jsons/resto.json.
+                File from which load data (json format), usually in input_jsons/
+            cant_tables: int, optional. Default 20.
+                Amount of tables to be loaded, if it is higher than available it will give the maximium available.
+        Return
+        ------
+            resto: Resto Object
+                Resto Object with all the Tables and Histograms loaded.
+
+    """
     resto = Resto()
     now = dt.datetime.today()
-    with open(file, 'r') as f:
+    with open(file, "r") as f:
         resto_dic = json.load(f)
-        i = 0
-        if cant_mesas > resto_dic["cant_mesas"] :
-            print(f"ERROR: Max_mesas:{resto['cant_mesas']}, proceding with less mesas")
-        while i < cant_mesas and i < resto_dic["cant_mesas"]:
-            mesa = resto_dic["mesas"][i]
-            time = dt.datetime.strptime(mesa["t_in"],"%H:%M")
-            time.replace(year=now.year, month=now.month, day=now.day)
-            resto.add_mesa(name=mesa["name"], capacidad=mesa["capacidad"], state=mesa["state"], t_in=time, hist_id=mesa["hist_id"],client=None)
-            i += 1
-        for hist in resto_dic["hists"]:
-            shape, scale = Aux.gamma_parameters(media=hist["media"], dispersion=hist["dispersion"])
-            bins = np.arange(0, resto_dic["t_max_sim"], resto_dic["paso_de_tiempo"])
-            gamma = np.random.gamma(shape,scale,5000)
-            count, _bins = np.histogram(gamma, bins, density = True )
-            count = count/sum(count)
-            resto.add_hist(hist=count,hist_id=hist["hist_id"],media=hist["media"],dispersion=hist["dispersion"])
+    # Load Tables
+    i = 0
+    if cant_tables > resto_dic["cant_tables"]:
+        print(f"ERROR: Max_tables:{resto['cant_tables']}, proceding with less tables")
+    while i < cant_tables and i < resto_dic["cant_tables"]:
+        table = resto_dic["tables"][i]
+        time = dt.datetime.strptime(table["t_in"], "%H:%M")
+        time.replace(year=now.year, month=now.month, day=now.day)
+        resto.add_table(
+            name=table["name"],
+            capacity=table["capacity"],
+            state=table["state"],
+            t_in=time,
+            hist_id=table["hist_id"],
+            client=None,
+        )
+        i += 1
+    # Load histogramas
+    for hist in resto_dic["hists"]:
+        shape, scale = Aux.gamma_parameters(
+            media=hist["media"], dispersion=hist["dispersion"]
+        )
+        bins = np.arange(0, resto_dic["t_max_sim"], resto_dic["time_step"])
+        gamma = np.random.gamma(shape, scale, 5000)
+        count, _bins = np.histogram(gamma, bins, density=True)
+        count = count / sum(count)
+        resto.add_hist(
+            hist=count,
+            hist_id=hist["hist_id"],
+            media=hist["media"],
+            dispersion=hist["dispersion"],
+        )
     return resto
 
-def load_cola(cant_clients,file='input_jsons/cola.json',t_llegada=dt.datetime.today()):
-    cola = Cola()
-    with open(file, 'r') as f:
-        cola_dic = json.load(f)
-        i=0
-        if cant_clients > cola_dic["cant_clients"]:
-            print(f"ERROR: Max_cola:{cola_dic['cant_clients']}, proceding with less clients")
-        while i < cant_clients and i < cola_dic["cant_clients"]:
-            client = cola_dic["clients"][i]
-            cola.add_client(name=client["name"],cant=client["cant"],t_llegada=t_llegada)
-            i += 1
-    return cola
 
-def giveme_llegadas(mesas,factor_de_cantidad=4,plot=False,paso=5,proporciones=[2,1,2]):
-    """ devuelve: mesas*factor_de_cantidad tuplas
-                  cada tupla tiene un valor de tiempo y una
-                  cantidad de personas. Las tuplas estan ordenadas en tiempo"""
-    def _func_densidad_llegadas(x):
+def load_queue(
+    file="input_jsons/queue.json", t_arrival=dt.datetime.today(), cant_clients=5
+):
+    """ loads the state of the Queue and return an object Queue
+
+        Parameters
+        ----------
+            file: string, optional. Default input_jsons/queue.json.
+                File from which load data (json format), usually in input_jsons/
+            t_arrival: datetime.datetime object. Default calls datetime.datetime.today()
+                Time of arrival of Clients at the Queue
+            cant_clients: int, optional. Default 5.
+                Amount of Clients to be loaded, if it is higher than available it will give the maximium available.
+        Return
+        ------
+            queue: Queue Object
+                Queue Object with all the Clients loaded.
+    """
+    queue = Queue()
+    with open(file, "r") as f:
+        queue_dic = json.load(f)
+    if cant_clients > queue_dic["cant_clients"]:
+        print(
+            f"ERROR: Max_queue:{queue_dic['cant_clients']}, proceding with less clients"
+        )
+    i = 0
+    # Load clients
+    while i < cant_clients and i < queue_dic["cant_clients"]:
+        client = queue_dic["clients"][i]
+        queue.add_client(name=client["name"], cant=client["cant"], t_arrival=t_arrival)
+        i += 1
+    return queue
+
+
+def giveme_arrivals(
+    tables, quantity_factor=4, plot=False, step=5, proportions=[2, 1, 2]
+):
+    """ Returns a list with tuples representing the arrivals at the queue.
+        Time arrivals are calculated with a probability function that determines the rate of incoming persons to the resto/bar.
+        The amount of persons of each arrival is determined randomly with the input proportions.
+
+        Parameters
+        ----------
+            tables: list of Tables objects, non-optional.
+                Tables of the resto/bar
+            quantity_factor: int, non-optional. Default 4.
+                Determines the quantity of arrivals returned.
+            plot: boolean, non-optional. Default False.
+                Condition of ploting or not the histogram.
+            step: int, non-optional. Default 5.
+                Wifth of the histogram bins in minutes.
+            proportions: list of ints. Non-optional. Default [2,1,2]
+                Proportion of amount of clients in groups.
+                Firts value goes for groups of 2 clients.
+                Second value foes for groups of 3 clients ...
+
+        Return
+        ------
+            Returns a list of tuples, where each item in list represents the arrival of a client at the Queue.
+            The quantity of arrivals is len(tables)*quantity_factor.
+            Each Tuple has the time as a datetime.datetime object in the first element and the amount of persons in the group in the second element.
+            The list is sorted by time in ascending order.
+
+    """
+
+    def _func_arrivals_density(x):
         now = dt.datetime.today()
-        now = now.replace(second=0,microsecond=0)
+        now = now.replace(second=0, microsecond=0)
         normalizacion = 74
         ####################################################################
         #  Entre las 01:00 y 18:30
-        now = now.replace(hour=1,minute=0)
-        ancho = 17*60 + 30
+        now = now.replace(hour=1, minute=0)
+        ancho = 17 * 60 + 30
         if dt.timedelta() < (x - now) <= dt.timedelta(minutes=ancho):
-            return (0 )/normalizacion
+            return (0) / normalizacion
         ####################################################################
         # Entre las 18:30 y 19:00
-        now = now.replace(hour=18,minute=30)
+        now = now.replace(hour=18, minute=30)
         ancho = 30
         if dt.timedelta() <= (x - now) < dt.timedelta(minutes=ancho):
-            return (((pow(int(((x-now).total_seconds()/60)+1),3) ) / 2700 ) )/normalizacion
+            return (
+                ((pow(int(((x - now).total_seconds() / 60) + 1), 3)) / 2700)
+            ) / normalizacion
         ####################################################################
         # Entre las 19:00 y 19:30
-        now = now.replace(hour=19,minute=0)
+        now = now.replace(hour=19, minute=0)
         ancho = 30
         if dt.timedelta() <= (x - now) < dt.timedelta(minutes=ancho):
-            a=-0.2 # Cambio a pero los extremos quedan fijos
-            y0, y1 = 10,20
-            b = (y1 - y0 - (a*(ancho**2)) )/ancho
-            xx = int(((x-now).total_seconds()/60)+1)
-            return (a*pow(xx,2) + b*xx + y0 )/normalizacion
+            a = -0.2  # Cambio a pero los extremos quedan fijos
+            y0, y1 = 10, 20
+            b = (y1 - y0 - (a * (ancho ** 2))) / ancho
+            xx = int(((x - now).total_seconds() / 60) + 1)
+            return (a * pow(xx, 2) + b * xx + y0) / normalizacion
         ####################################################################
         # Entre las 19:30 y 21:00
-        now = now.replace(hour=19,minute=30)
+        now = now.replace(hour=19, minute=30)
         ancho = 90
         if dt.timedelta() <= (x - now) < dt.timedelta(minutes=ancho):
             # Fijo vertice y extremo izquierdo
             y0, xv, yv = 20, 45, 5
-            a = (y0-yv) / (xv**2)
-            xx = int(((x-now).total_seconds()/60)+1)
-            return (a*(pow(xx-xv,2)) + yv )/normalizacion
+            a = (y0 - yv) / (xv ** 2)
+            xx = int(((x - now).total_seconds() / 60) + 1)
+            return (a * (pow(xx - xv, 2)) + yv) / normalizacion
         ####################################################################
-        # Entre las 21:00 y las 22:00 
-        now = now.replace(hour=21,minute=0)
+        # Entre las 21:00 y las 22:00
+        now = now.replace(hour=21, minute=0)
         ancho = 60
         if dt.timedelta() <= (x - now) < dt.timedelta(minutes=ancho):
             # Fijo vertice y extremo izquierdo
             y0, xv, yv = 20, 30, 30
-            a = (y0-yv) / (xv**2)
-            xx = int(((x-now).total_seconds()/60)+1)
-            return (a*(pow(xx-xv,2)) + yv )/normalizacion
+            a = (y0 - yv) / (xv ** 2)
+            xx = int(((x - now).total_seconds() / 60) + 1)
+            return (a * (pow(xx - xv, 2)) + yv) / normalizacion
         ####################################################################
-        # Entre las 22:00 y las 22:30 
+        # Entre las 22:00 y las 22:30
         now = now.replace(hour=22)
         ancho = 30
         if dt.timedelta() <= (x - now) < dt.timedelta(minutes=ancho):
             # Fijo extremo izquierdo y derecho
-            y0,y1 = 20,15
-            xx = int(((x-now).total_seconds()/60)+1)
-            return (((y1-y0)/ancho)*xx + y0 )/normalizacion
+            y0, y1 = 20, 15
+            xx = int(((x - now).total_seconds() / 60) + 1)
+            return (((y1 - y0) / ancho) * xx + y0) / normalizacion
         ####################################################################
-        # Entre las 22:30 y las 24:00 
-        now = now.replace(hour=22,minute=30)
+        # Entre las 22:30 y las 24:00
+        now = now.replace(hour=22, minute=30)
         ancho = 90
         if dt.timedelta() <= (x - now) < dt.timedelta(minutes=ancho):
             # Fijo extremo izquierdo y derecho
-            y0,y1 = 15,5
-            xx = int(((x-now).total_seconds()/60)+1)
-            return (((y1-y0)/ancho)*xx + y0 )/normalizacion
-            # Entre las 22:30 y las 24:00 
-        now = now.replace(hour=00,minute=00)
+            y0, y1 = 15, 5
+            xx = int(((x - now).total_seconds() / 60) + 1)
+            return (((y1 - y0) / ancho) * xx + y0) / normalizacion
+            # Entre las 22:30 y las 24:00
+        now = now.replace(hour=00, minute=00)
         ancho = 120
         if dt.timedelta() <= (x - now) < dt.timedelta(minutes=ancho):
             # Fijo extremo izquierdo y derecho
-            return (0 )/normalizacion
-        return (0 )/normalizacion
+            return (0) / normalizacion
+        return (0) / normalizacion
 
-    def _random_date(t_max,t_min):
+    def _random_date(t_max, t_min):
         t_max = t_max.timestamp()
         t_min = t_min.timestamp()
         delta = t_max - t_min
-        delta = delta*np.random.random_sample()
+        delta = delta * np.random.random_sample()
         t = dt.datetime.fromtimestamp(t_min + delta)
         return t
 
-    def random_cant(proporciones):
-        p = np.array(proporciones)
-        p = np.cumsum(p/np.sum(p))
+    def random_cant(proportions):
+        p = np.array(proportions)
+        p = np.cumsum(p / np.sum(p))
         r = np.random.random_sample()
-        for i,val in enumerate(p):
-            if r < val: return i+2    
+        for i, val in enumerate(p):
+            if r < val:
+                return i + 2
 
     t = []
-    total = len(mesas)*factor_de_cantidad
+    total = len(tables) * quantity_factor
     t_min = dt.datetime.today()
-    t_min = t_min.replace(hour=18,minute=30,second=30,microsecond=0)
-    t_max = t_min.replace(hour=0,minute=0,second=0,microsecond=0) + dt.timedelta(days=1)
+    t_min = t_min.replace(hour=18, minute=30, second=30, microsecond=0)
+    t_max = t_min.replace(hour=0, minute=0, second=0, microsecond=0) + dt.timedelta(
+        days=1
+    )
     while len(t) < total:
-        date = _random_date(t_min,t_max)
-        val = _func_densidad_llegadas(date)
+        date = _random_date(t_min, t_max)
+        val = _func_arrivals_density(date)
         altura = np.random.random_sample()
         if altura < val:
-            t.append( (date,random_cant(proporciones)) )
-    t = sorted(t,key=lambda tuple: tuple[0])
+            t.append((date, random_cant(proportions)))
+    t = sorted(t, key=lambda tuple: tuple[0])
     if plot:
-        tiempos = list(map(lambda tuple:tuple[0], t))
-        Aux.plot_datetime_histogram(tiempos,paso=paso)
+        tiempos = list(map(lambda tuple: tuple[0], t))
+        Aux.plot_datetime_histogram(tiempos, step=step)
     return t
 
-def giveme_levantadas(resto):
-    levantadas = []
-    for mesa in resto.mesas:
-        media, dispersion = resto.hists[f"{mesa.hist_id}"]["media"], resto.hists[f"{mesa.hist_id}"]["dispersion"]
-        shape, scale = Aux.gamma_parameters(media,dispersion)
-        levantadas.append( list(np.random.gamma(shape,scale,20)) )
-    return levantadas
+
+def giveme_departures(resto):
+    departures = []
+    for table in resto.tables:
+        media, dispersion = (
+            resto.hists[f"{table.hist_id}"]["media"],
+            resto.hists[f"{table.hist_id}"]["dispersion"],
+        )
+        shape, scale = Aux.gamma_parameters(media, dispersion)
+        departures.append(list(np.random.gamma(shape, scale, 20)))
+    return departures
+
 
 ################################################################################
 # Main

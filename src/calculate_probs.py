@@ -1,26 +1,28 @@
 import Resto
 import datetime as dt
 
-# Cargo mesas y cola vacias
-resto = Resto.load_resto(file="input_jsons/resto_vacio.json", cant_mesas=22)
-cola = Resto.load_cola(file="input_jsons/cola_vacia.json", cant_clients=0)
-# Registro de llegadas y levantadas
-cola.registro_de_llegadas = Resto.giveme_llegadas(resto.mesas, plot=False, paso=15)
-resto.levantadas = Resto.giveme_levantadas(resto)
+# Cargo tables y queue vacias
+resto = Resto.load_resto(file="input_jsons/resto_vacio.json", cant_tables=22)
+queue = Resto.load_queue(file="input_jsons/queue_empty.json", cant_clients=0)
+# Registro de llegadas y departures
+queue.arrivals_register = Resto.giveme_arrivals(resto.tables, plot=False, step=15)
+resto.departures = Resto.giveme_departures(resto)
 # resto.print_resto()
-# cola.print_cola()
+# queue.print_queue()
 
-paso = 5  # paso de tiempo
+resto.print_resto()
+
+step = 5  # paso de tiempo
 now = dt.datetime.today()
 now = now.replace(hour=18, minute=30, second=0, microsecond=0)
 now_max = now.replace(hour=22, minute=0)  # + dt.timedelta(days=1)
 while now < now_max:
     if True:
         print(f"\nSON LAS {now.strftime('%H:%M')}")
-    cola.actualizar_llegadas(now=now, verbose=False)
-    resto.actualizar_levantadas(now, verbose=False)
-    resto.actualizar_sentadas(cola, now, verbose=False)
+    queue.update_arrivals(now=now, verbose=False)
+    resto.update_departures(now, verbose=False)
+    resto.update_sits(queue, now, verbose=False)
     # resto.print_resto()
-    # cola.print_cola()
-    # cola.calcular_probabilidades
-    now += dt.timedelta(minutes=paso)
+    # queue.print_queue()
+    # queue.calcular_probabilidades
+    now += dt.timedelta(minutes=step)
