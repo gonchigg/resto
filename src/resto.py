@@ -7,7 +7,6 @@
         2. Sub-classes `Table` and `Client` to handle each.
         3. Functions as `load_resto()`, `load_queue()` to load data from .jsons.
         4. Functions as `giveme_arrivals()`, `giveme_departures` to hablde both events."""
-
 import numpy as np
 import datetime as dt
 import json

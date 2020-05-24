@@ -1,6 +1,7 @@
 import functools
 import time
 
+
 def debug(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
@@ -15,7 +16,9 @@ def debug(func):
                 return result
         result = func(*args, **kwargs)
         return result
+
     return wrapper
+
 
 def timeit(func):
     @functools.wraps(func)
@@ -29,4 +32,5 @@ def timeit(func):
                 return result
         result = func(*args, **kwargs)
         return result
+
     return wrapper

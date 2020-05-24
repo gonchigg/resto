@@ -3,35 +3,71 @@ import numpy as np
 import matplotlib.pylab as plt
 import datetime as dt
 
-def plot_datetime_histogram(tiempos,paso,strftime_formatter="%H:%M",density=False):
-    """El vector de tiempos esta conformado por datetimes,
-       paso es el paso de tiempo para los bins. El vector de tiempos
-       debe estar ordenado"""
-    def lower_p(a,p):
-        return p*math.floor(a/p)
 
-    t_min, t_max = tiempos[0], tiempos[-1]
-    r1, r2 = lower_p(t_min.minute,paso), lower_p(t_max.minute,paso)
-    t_min, t_max = t_min.replace(minute=r1,second=0,microsecond=0), t_max.replace(minute=r2,second=0,microsecond=0) + dt.timedelta(minutes=paso)
+def plot_datetime_histogram(times, step, strftime_formatter="%H:%M", density=False):
+    """
+        Plot an histogram of a sequence of datetime.datetime objects
+
+        Parameters
+        ----------
+            times: list of datetime.datetime objects, non-optional
+                List of values on which the histogram is going to be calculates
+            step: int, non-optional
+                Step of time on wich the histogram is going to be divided.
+            strftime_formatter: string, optional. Default:'%H:%M'
+                Formatter used to show the time in the x-axes, on default shows time as HH:MM
+            densitity: boolean, optional. Default False.
+                If the histogram should be normalized or not."""
+
+    def lower_p(a, p):
+        return p * math.floor(a / p)
+
+    t_min, t_max = times[0], times[-1]
+    r1, r2 = lower_p(t_min.minute, step), lower_p(t_max.minute, step)
+    t_min, t_max = (
+        t_min.replace(minute=r1, second=0, microsecond=0),
+        t_max.replace(minute=r2, second=0, microsecond=0) + dt.timedelta(minutes=step),
+    )
     t_min, t_max = t_min.timestamp(), t_max.timestamp()
 
-    tiempos = list(map(lambda date: date.timestamp(),tiempos))
-    bins = np.arange(start=t_min,stop=t_max,step=(paso*60))
-    counts, _ = np.histogram(tiempos, bins=bins ,density=density)
+    times = list(map(lambda date: date.timestamp(), times))
+    bins = np.arange(start=t_min, stop=t_max, step=(step * 60))
+    counts, _ = np.histogram(times, bins=bins, density=density)
 
     fig, ax = plt.subplots(figsize=(10, 6.5))
-    ax.bar( (bins[:-1]+ (60*paso)/2) ,counts,paso*60,color='salmon',edgecolor='black',linewidth='2')
+    ax.bar(
+        (bins[:-1] + (60 * step) / 2),
+        counts,
+        step * 60,
+        color="salmon",
+        edgecolor="black",
+        linewidth="2",
+    )
     ax.set_xticks(bins)
-    _xticks = [ dt.datetime.fromtimestamp(stamp) for stamp in bins]
-    _xticks = [ date.strftime(strftime_formatter) for date in _xticks]
-    ax.set_xticklabels( _xticks )
+    _xticks = [dt.datetime.fromtimestamp(stamp) for stamp in bins]
+    _xticks = [date.strftime(strftime_formatter) for date in _xticks]
+    ax.set_xticklabels(_xticks)
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
 
-    ax.grid('on')
+    ax.grid("on")
     fig.tight_layout()
     plt.show()
+    return
 
-def gamma_parameters(media,dispersion):
-    shape = ( float(media)/float(dispersion) )*( float(media)/float(dispersion) )
-    scale = float(media)/shape
+
+def gamma_parameters(media, dispersion):
+    """
+        Get the parameters shape and scale of a Gamma Distribution parting from the media and the dispersion.
+
+        Parameters
+        ----------
+            media: float, non-optional
+            dispersion: float, non-optional
+
+        Return
+        ------
+            shape: float
+            scale: float"""
+    shape = (float(media) / float(dispersion)) * (float(media) / float(dispersion))
+    scale = float(media) / shape
     return shape, scale

@@ -5,67 +5,71 @@ import My
 
 
 class Tree:
-    """ Class used to calculate all the possible forms of arraging groups of clients in groups of Tables"""
+    """ Class used to calculate all the possible forms of arraging groups of clients in groups of Tables.
+        Mainly a Tree that grows staging all the possibilities or arraging clients.
 
-    def __init__(self, clients, mesas, timeit=False, debug=False):
+        It has two main methods:
+            * build_tree(): build the tree with all the possibilities of arraging clients in tables.
+            * get_branches():  get the branches of the Tree.   
+        An extra method can be used to print all the branches of the tree
+            * print_branches()
+    """
+    def __init__(self, clients, tables, timeit=False, debug=False):
         class _Node:
-            """ Class for building a tree that calculates
-                all possible forms of siting people in a 
-                group of tables """
-
-            def __init__(self, cantidades, comb_mesas, mesas, level):
+            """ Each Node of the Tree """
+            def __init__(self, cantidades, comb_tables, tables, level):
                 self.cantidades = cantidades
                 self.hijos = []
-                self.comb_mesas = comb_mesas
-                self.mesas = mesas
+                self.comb_tables = comb_tables
+                self.tables = tables
                 self.level = level
 
-        def _arma_tree(node):
+        def _build_tree(node):
             if not node.cantidades:
                 return
             else:
                 cantidades_aux = node.cantidades.copy()
-                m = next(iter(cantidades_aux))  # De cuanto son las mesas
-                n = cantidades_aux.pop(m)  # Cuantas de esas mesas necesito
-                mesas_de_interes = filter(lambda x: int(m) in x.capacidad, node.mesas)
+                m = next(iter(cantidades_aux))  # De cuanto son las tables
+                n = cantidades_aux.pop(m)  # Cuantas de esas tables necesito
+                tables_de_interes = filter(lambda x: int(m) in x.capacidad, node.tables)
                 for tupla in combinations(
-                    mesas_de_interes, n
-                ):  # Iterar sobre todas las combinaciones posibles de mesas
-                    mesas_aux = tuple(
-                        filter(lambda mesa: mesa not in tupla, node.mesas)
+                    tables_de_interes, n
+                ):  # Iterar sobre todas las combinaciones posibles de tables
+                    tables_aux = tuple(
+                        filter(lambda table: table not in tupla, node.tables)
                     )
                     new_node = _Node(
-                        mesas=mesas_aux,
-                        comb_mesas=tupla,
+                        tables=tables_aux,
+                        comb_tables=tupla,
                         cantidades=cantidades_aux,
                         level=node.level + 1,
                     )
                     node.hijos.append(new_node)
-                    _arma_tree(node=new_node)
+                    _build_tree(node=new_node)
                 return
 
         @Dec.debug
         @Dec.timeit
-        def arma_tree(node, timeit=False, debug=True):
-            _arma_tree(node)
+        def build_tree(node, timeit=False, debug=True):
+            _build_tree(node)
 
         @Dec.debug
         @Dec.timeit
-        def get_ramas(node, timeit=False, debug=True):
-            def _get_ramas(node):
+        def get_branches(node, timeit=False, debug=True):
+            def _get_branches(node):
                 if not node.hijos:
-                    return [node.comb_mesas]
+                    return [node.comb_tables]
                 else:
-                    ramas = []
+                    branches = []
                     if node.level != 0:
                         for hijo in node.hijos:
-                            ramas.extend(_get_ramas(hijo))
-                        for i in range(len(ramas)):
-                            ramas[i] = ramas[i] + node.comb_mesas
+                            branches.extend(_get_branches(hijo))
+                        for i in range(len(branches)):
+                            branches[i] = branches[i] + node.comb_tables
                     else:
                         for hijo in node.hijos:
-                            ramas.extend(_get_ramas(hijo))
-                    return ramas
+                            branches.extend(_get_branches(hijo))
+                    return branches
 
             def _gname(x):
                 out = []
@@ -79,20 +83,20 @@ class Tree:
                     out += x[i].name[-2:]
                 return out
 
-            ramas = _get_ramas(node)  # Recupero las ramas del tree
+            branches = _get_branches(node)  # Recupero las branches del tree
             total = sum(node.cantidades.values())  # Cantidad de clientes
-            ramas = list(
-                filter(lambda x: len(x) == total, ramas)
-            )  # Elimina las ramas que son mas cortas
-            ramas = [
-                sorted(rama, key=lambda mesa: mesa.name) for rama in ramas
+            branches = list(
+                filter(lambda x: len(x) == total, branches)
+            )  # Elimina las branches que son mas cortas
+            branches = [
+                sorted(branche, key=lambda table: table.name) for branche in branches
             ]  # Las ordeno por placer visual
-            ramas = sorted(ramas, key=_fname)  # Las ordeno por placer visual
-            group_obj = groupby(ramas, key=_gname)  # Elimina duplicados
-            ramas = [list(value)[0] for key, value in group_obj]  # Elimina duplicados
-            return ramas
+            branches = sorted(branches, key=_fname)  # Las ordeno por placer visual
+            group_obj = groupby(branches, key=_gname)  # Elimina duplicados
+            branches = [list(value)[0] for key, value in group_obj]  # Elimina duplicados
+            return branches
 
-        self.mesas = mesas
+        self.tables = tables
         cantidades = {}
         for client in clients:  # Carga el dic cantidades
             try:
@@ -100,23 +104,23 @@ class Tree:
             except:
                 cantidades[f"{client.cant}"] = 1
 
-        node = _Node(cantidades=cantidades, comb_mesas=None, mesas=mesas, level=0)
-        arma_tree(node, timeit=timeit, debug=debug)
-        self.ramas = get_ramas(node, timeit=timeit, debug=debug)
+        node = _Node(cantidades=cantidades, comb_tables=None, tables=tables, level=0)
+        build_tree(node, timeit=timeit, debug=debug)
+        self.branches = get_branches(node, timeit=timeit, debug=debug)
 
     @Dec.debug
     @Dec.timeit
-    def print_ramas(self, title="", timeit=False, debug=False):
+    def print_branches(self, title="", timeit=False, debug=False):
         x = PrettyTable()
         x.title = title
-        field_names = ["Rama"]
-        for mesa in self.mesas:
-            field_names.append(f"{mesa.name}-{mesa.capacidad}")
+        field_names = ["branche"]
+        for table in self.tables:
+            field_names.append(f"{table.name}-{table.capacidad}")
         x.field_names = field_names
-        for i, rama in enumerate(self.ramas):
+        for i, branche in enumerate(self.branches):
             row = [i]
-            for mesa in self.mesas:
-                if mesa in rama:
+            for table in self.tables:
+                if table in branche:
                     row.append("X")
                 else:
                     row.append("")
