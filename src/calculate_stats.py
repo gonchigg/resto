@@ -10,9 +10,7 @@ import numpy as np
 import Auxiliar as Aux
 import copy
 
-client_times_register = [] # register of client times
-queue_states = []          # register of queue state
-n = 10                     # total simulations
+n = 100                    # total simulations
 verbose = False
 # ------------------------------------------------------------------------------------------
 # Create time vector
@@ -20,22 +18,24 @@ verbose = False
 step = 5  # Define time step
 now = dt.datetime.today()
 now = now.replace(hour=18, minute=30, second=0, microsecond=0)  # Starting hour
-now_max = now.replace(hour=23, minute=30)  # Ending hour
-t = []
+now_max = now.replace(hour=23, minute=30)                       # Ending hour
+t = [] #time vector
 # Build time vector
 while now < now_max:
     now = now + dt.timedelta(minutes=step)
     t.append(now)
 t = tuple(t)
 # ------------------------------------------------------------------------------------------
+# Create queue_states an client_times_register as np.array
+# ------------------------------------------------------------------------------------------
+queue_states = np.zeros(shape=(n,len(t),3))
+client_times_register = []
+# ------------------------------------------------------------------------------------------
 # Initial resto and queue
 # ------------------------------------------------------------------------------------------
 start_resto = Resto.load_resto(file="input_jsons/empty_resto.json", cant_tables=20)
 start_queue = Resto.load_queue(file="input_jsons/empty_queue.json", cant_clients=0)
-# ------------------------------------------------------------------------------------------
-# Make full simulation n times
-# ------------------------------------------------------------------------------------------
-for _ in range(n):
+for i in range(n):
     # ------------------------------------------------------------------------------------------
     # Init resto and queue
     # ------------------------------------------------------------------------------------------
@@ -50,7 +50,7 @@ for _ in range(n):
     # Simulation
     # ------------------------------------------------------------------------------------------
     queue_state = []
-    for now in t:
+    for j,now in enumerate(t):
         if verbose: print(f"\nIt´s {now.strftime('%H:%M')}")
         # Update arrivals
         queue.update_arrivals( now=now, verbose=verbose )
@@ -59,31 +59,28 @@ for _ in range(n):
         # Update sits
         resto.update_sits(  queue, now, verbose=verbose )
         # Register queue state
-        queue_state.append( queue.get_state() )
-    # state of queue in function of time
-    queue_states.append(queue_state)
+        queue_states[i,j] =  queue.get_state() 
+    # Simulation end
+# n simulations end
 
-queue_state_new = []e
-for t in range(len(queue_states[0])):
-    queue_state_new.append(np.array([0.0, 0.0, 0.0]))
-    for tanda in queue_states:
-        queue_state_new[t] += (tanda[t]) / (len(queue_states[0]) + 1)
-
-tiempos = []
-now = dt.datetime.today()
-now = now.replace(hour=18, minute=30, second=0, microsecond=0)
-now_max = now.replace(hour=23, minute=20)  # + dt.timedelta(days=1)
-while now < now_max:
-    tiempos.append(now)
-    now += dt.timedelta(minutes=step)
-
-data = pd.DataFrame(queue_state_new)
-plt.figure()
-lines = plt.plot(tiempos, data)
-plt.legend(iter(lines), ("2", "3", "4"))
+# ------------------------------------------------------------------------------------------
+# Ploting
+# ------------------------------------------------------------------------------------------
+# Plot queue state in function of time
+queue_states = np.array( queue_states )
+queue_states_mean = np.mean( queue_states, axis=0)
+queue_states_std  = np.mean( queue_states, axis=0)
+fig = plt.figure(num='queue_state',figsize=(10,6),facecolor='papayawhip',edgecolor='black')
+ax = fig.add_subplot(1,1,1,facecolor='antiquewhite')
+lines = []
+legends = []
+for i in range(3):
+     lines.append(ax.errorbar(t,queue_states_mean[:,i],yerr=queue_states_std[:,i],elinewidth=1,capsize=2,capthick=0.5,linestyle='-',linewidth=2) )
+     legends.append(f'{i+2} clients')
+ax.legend(lines,legends,loc='best',fontsize='small',shadow=True,facecolor='palegoldenrod',edgecolor=None)
 plt.grid("on")
+# Plot histograms of time of arrival, time of sit and living time
+Aux.plot_datetime_histogram(times=[ times[1] for times in client_times_register ], step=5, normalizer=n, title='Arrival time',show=False)
+Aux.plot_datetime_histogram(times=[ times[2] for times in client_times_register ], step=5, normalizer=n, title='Sit time',show=False)
+Aux.plot_datetime_histogram(times=[ times[3] for times in client_times_register ], step=5, normalizer=n, title='Living time',show=False)
 plt.show()
-
-waits = np.array(waits)
-# print(waits[:,4])
-Aux.plot_datetime_histogram(tiempos=waits[:, 1], step=5)

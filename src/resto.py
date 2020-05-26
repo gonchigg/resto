@@ -47,7 +47,6 @@ class Table:
         self.state = state
         self.hist_id = hist_id
 
-
 class Client:
     """ Class used to simulate and handle all the data relationed to each Client.
         Parameters
@@ -67,8 +66,6 @@ class Client:
         self.code = code
         self.cant = cant
         self.t_arrival = t_arrival
-
-
 # ------------------------------------------------------------------------------------------
 # Main-Classes: Queue, Resto
 #       Queue ~ List of Clients, and methods
@@ -130,7 +127,6 @@ class Queue:
         for i, client in enumerate(self.queue):
             x.add_row([i, client.name, client.cant, client.code])
         print(x)
-
 
 class Resto:
     def __init__(self):
@@ -264,8 +260,6 @@ class Resto:
             for hist in self.hists:
                 x.add_row([hist["hist_id"], len(hist["hist"]), len(hist["hist_acum"])])
             print(x)
-
-
 # ------------------------------------------------------------------------------------------
 # Auxiliar Functions
 # ------------------------------------------------------------------------------------------
@@ -322,9 +316,7 @@ def load_resto(file="input_jsons/resto.json", cant_tables=20):
         )
     return resto
 
-
-def load_queue(
-    file="input_jsons/queue.json", t_arrival=dt.datetime.today(), cant_clients=5
+def load_queue(file="input_jsons/queue.json", t_arrival=dt.datetime.today(), cant_clients=5
 ):
     """ loads the state of the Queue and return an object Queue
 
@@ -356,10 +348,7 @@ def load_queue(
         i += 1
     return queue
 
-
-def giveme_arrivals(
-    tables, quantity_factor=4, plot=False, step=5, proportions=[2, 1, 2]
-):
+def giveme_arrivals(tables, quantity_factor=4, plot=False, step=5, proportions=[2, 1, 2]):
     """ Returns a list with tuples representing the arrivals at the queue.
         Time arrivals are calculated with a probability function that determines the rate of incoming persons to the resto/bar.
         The amount of persons of each arrival is determined randomly with the input proportions.
@@ -501,7 +490,6 @@ def giveme_arrivals(
         Aux.plot_datetime_histogram(tiempos, step=step)
     return t
 
-
 def giveme_departures(resto):
     """ given one of the histograms in resto, it simulates the amount of time group of clients is going to be in each table
         returns a list with one sublist for each table.
@@ -516,8 +504,6 @@ def giveme_departures(resto):
         shape, scale = Aux.gamma_parameters(media, dispersion)
         departures.append(list(np.random.gamma(shape, scale, 20)))
     return departures
-
-
 ############################################################################################
 # Main
 ############################################################################################
