@@ -117,6 +117,12 @@ class Queue:
             else:
                 cond = False
 
+    def get_state(self):
+        quantities = np.array([0, 0, 0])
+        for client in self.queue:
+            quantities[client.cant - 2] += 1
+        return quantities
+
     def print_queue(self):
         x = PrettyTable()
         x.title = "Queue"
@@ -175,7 +181,7 @@ class Resto:
                             f"    Table:{table.name} has stand up, with client:{table.client.name} at:{t_out}"
                         )
                     departures.append(
-                        [
+                        (
                             table.client.cant,
                             table.client.t_arrival,
                             table.t_in,
@@ -183,7 +189,7 @@ class Resto:
                             table.t_in - table.client.t_arrival,
                             t_out - table.t_in,
                             t_out - table.client.t_arrival,
-                        ]
+                        )
                     )
                     (self.departures[i]).pop(0)
                     table.state = "empty"
