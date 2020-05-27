@@ -67,7 +67,7 @@ for i in range(n):
 # Ploting
 # ------------------------------------------------------------------------------------------
 # Plot queue state in function of time
-queue_states = np.array( queue_states )
+"""queue_states = np.array( queue_states )
 queue_states_mean = np.mean( queue_states, axis=0)
 queue_states_std  = np.mean( queue_states, axis=0)
 fig = plt.figure(num='queue_state',figsize=(10,6),facecolor='papayawhip',edgecolor='black')
@@ -78,9 +78,15 @@ for i in range(3):
      lines.append(ax.errorbar(t,queue_states_mean[:,i],yerr=queue_states_std[:,i],elinewidth=1,capsize=2,capthick=0.5,linestyle='-',linewidth=2) )
      legends.append(f'{i+2} clients')
 ax.legend(lines,legends,loc='best',fontsize='small',shadow=True,facecolor='palegoldenrod',edgecolor=None)
-plt.grid("on")
+plt.grid("on")"""
 # Plot histograms of time of arrival, time of sit and living time
-Aux.plot_datetime_histogram(times=[ times[1] for times in client_times_register ], step=5, normalizer=n, title='Arrival time',show=False)
-Aux.plot_datetime_histogram(times=[ times[2] for times in client_times_register ], step=5, normalizer=n, title='Sit time',show=False)
-Aux.plot_datetime_histogram(times=[ times[3] for times in client_times_register ], step=5, normalizer=n, title='Living time',show=False)
+#Aux.plot_datetime_histogram(times=[ times[1] for times in client_times_register ], step=5, normalizer=n, title='Arrival time',show=False)
+#Aux.plot_datetime_histogram(times=[ times[2] for times in client_times_register ], step=5, normalizer=n, title='Sit time',show=False)
+#Aux.plot_datetime_histogram(times=[ times[3] for times in client_times_register ], step=5, normalizer=n, title='Living time',show=False)
+Aux.plot_timedelta_histogram(times=[ times[4] for times in client_times_register ], step=5, normalizer=1, title='Waiting time',show=True)
+#Aux.plot_timedelta_histogram(times=[ times[5] for times in client_times_register ], step=5, normalizer=1, title='Sit time',show=False)
+#Aux.plot_timedelta_histogram(times=[ times[6] for times in client_times_register ], step=5, normalizer=1, title='Living time',show=False)
+
+
+
 plt.show()

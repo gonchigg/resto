@@ -142,15 +142,7 @@ class Resto:
             "hist_acum": np.cumsum(hist / sum(hist)),
         }
 
-    def add_table(
-        self,
-        name="",
-        capacity=[],
-        t_in=dt.datetime.today(),
-        state="empty",
-        hist_id="hist_01",
-        client=None,
-    ):
+    def add_table(self, name="", capacity=[], t_in=dt.datetime.today(), state="empty", hist_id="hist_01", client=None):
         if name == "":
             name = f"table_{len(self.tables+1):02d}"
         self.tables.append(
