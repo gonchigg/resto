@@ -1,8 +1,68 @@
+"""
+    Probs
+    =====
+
+    Provides the classes and methods used to calculate the probabilities of a client getting sit in a determined period of time
+"""
+import MyDecorators as Dec
+import datetime as dt
+import numpy as np
 from itertools import combinations, groupby
 from prettytable import PrettyTable
-import MyDecorators as Dec
-import My
 
+def calc_probs(now, now_max, queue, resto, step, timeit=False, debug=False, verbose=False, vverbose=False):
+    if verbose: print("Calculating probabilities ...")
+    if vverbose and queue.queue : print("    queue looks:")
+    if vverbose and queue.queue : queue.print_queue()
+    p = np.zeros(len(queue.queue))
+    for i in range(len(queue.queue)):
+        clients = queue.queue[0:i+1]
+        if vverbose: print(f"        calculating probs for clients:")
+        if vverbose: print_group(clients)
+        p[i] = calc_prob(now,now_max,step,clients,resto,timeit,debug,verbose,vverbose)
+
+def calc_prob(now,now_max,step,clients,resto,timeit=False,debug=False,verbose=False,vverbose=False):
+    """ For a dermined group of clients and for all times
+    """
+
+    tree = Tree(clients,resto.tables,timeit,debug)
+    if vverbose: print("    Posible ways of sitting")
+    if vverbose: tree.print_branches()
+
+    nows = []
+    while now < now_max:
+        nows.append(now)
+        now = now + dt.timedelta(minutes=step)
+    nows = tuple(nows)
+
+    probs = np.zeros(len(nows))
+    for i,_now in enumerate(nows):
+        p_total = 0.0
+        for branch in tree.branches:
+            p_branch = 1.0
+            for table in branch:
+                #                     resto.hists[hist_id][hist_acum][index]
+                p_branch = p_branch * resto.hists[table.hist_id][hist_acum][int((_now-table.t_in).total_seconds/60)]
+            p_total += p_branch
+        probs[i] = p_total
+    return probs
+
+def print_group(clients):
+    x = PrettyTable()
+    x.title = "Group"
+    x.field_names = ["numb", "name", "cant", "code"]
+    for i, client in enumerate(clients):
+        x.add_row([i, client.name, client.cant, client.code])
+    print(x)
+
+def get_starting_index(now,resto,step):
+    index_vec = np.zeros(len(resto.tables),dtype=np.int8)
+    for i in range(len(resto.tables)):
+        if resto.tables[i].state == "empty":
+            index_vec[i] = 99
+        else:
+            index_vec[i] = int((((now-resto.tables[i].t_in).total_seconds() )/60)/step)
+    return index_vec
 
 class Tree:
     """ Class used to calculate all the possible forms of arraging groups of clients in groups of Tables.
@@ -17,23 +77,23 @@ class Tree:
     def __init__(self, clients, tables, timeit=False, debug=False):
         class _Node:
             """ Each Node of the Tree """
-            def __init__(self, cantidades, comb_tables, tables, level):
-                self.cantidades = cantidades
-                self.hijos = []
+            def __init__(self, cants, comb_tables, tables, level):
+                self.cants = cants
+                self.children = []
                 self.comb_tables = comb_tables
                 self.tables = tables
                 self.level = level
 
         def _build_tree(node):
-            if not node.cantidades:
+            if not node.cants:
                 return
             else:
-                cantidades_aux = node.cantidades.copy()
-                m = next(iter(cantidades_aux))  # De cuanto son las tables
-                n = cantidades_aux.pop(m)  # Cuantas de esas tables necesito
-                tables_de_interes = filter(lambda x: int(m) in x.capacidad, node.tables)
+                cants_aux = node.cants.copy()
+                m = next(iter(cants_aux))  # De cuanto son las tables
+                n = cants_aux.pop(m)  # Cuantas de esas tables necesito
+                tables_of_interest = filter(lambda x: int(m) in x.capacity, node.tables)
                 for tupla in combinations(
-                    tables_de_interes, n
+                    tables_of_interest, n
                 ):  # Iterar sobre todas las combinaciones posibles de tables
                     tables_aux = tuple(
                         filter(lambda table: table not in tupla, node.tables)
@@ -41,10 +101,10 @@ class Tree:
                     new_node = _Node(
                         tables=tables_aux,
                         comb_tables=tupla,
-                        cantidades=cantidades_aux,
+                        cants=cants_aux,
                         level=node.level + 1,
                     )
-                    node.hijos.append(new_node)
+                    node.children.append(new_node)
                     _build_tree(node=new_node)
                 return
 
@@ -57,18 +117,18 @@ class Tree:
         @Dec.timeit
         def get_branches(node, timeit=False, debug=True):
             def _get_branches(node):
-                if not node.hijos:
+                if not node.children:
                     return [node.comb_tables]
                 else:
                     branches = []
                     if node.level != 0:
-                        for hijo in node.hijos:
-                            branches.extend(_get_branches(hijo))
+                        for child in node.children:
+                            branches.extend(_get_branches(child))
                         for i in range(len(branches)):
                             branches[i] = branches[i] + node.comb_tables
                     else:
-                        for hijo in node.hijos:
-                            branches.extend(_get_branches(hijo))
+                        for child in node.children:
+                            branches.extend(_get_branches(child))
                     return branches
 
             def _gname(x):
@@ -84,7 +144,7 @@ class Tree:
                 return out
 
             branches = _get_branches(node)  # Recupero las branches del tree
-            total = sum(node.cantidades.values())  # Cantidad de clientes
+            total = sum(node.cants.values())  # Cantidad de clientes
             branches = list(
                 filter(lambda x: len(x) == total, branches)
             )  # Elimina las branches que son mas cortas
@@ -97,14 +157,14 @@ class Tree:
             return branches
 
         self.tables = tables
-        cantidades = {}
-        for client in clients:  # Carga el dic cantidades
+        cants = {}
+        for client in clients:  # Carga el dic cants
             try:
-                cantidades[f"{client.cant}"] += 1
+                cants[f"{client.cant}"] += 1
             except:
-                cantidades[f"{client.cant}"] = 1
+                cants[f"{client.cant}"] = 1
 
-        node = _Node(cantidades=cantidades, comb_tables=None, tables=tables, level=0)
+        node = _Node(cants=cants, comb_tables=None, tables=tables, level=0)
         build_tree(node, timeit=timeit, debug=debug)
         self.branches = get_branches(node, timeit=timeit, debug=debug)
 
@@ -115,7 +175,7 @@ class Tree:
         x.title = title
         field_names = ["branche"]
         for table in self.tables:
-            field_names.append(f"{table.name}-{table.capacidad}")
+            field_names.append(f"{table.name}-{table.capacity}")
         x.field_names = field_names
         for i, branche in enumerate(self.branches):
             row = [i]

@@ -21,7 +21,8 @@
         {
             "name": "table_03",
             "capacity": [
-                4
+                2,
+                3
             ],
             "state": "empty",
             "t_in": "19:00",
@@ -30,8 +31,8 @@
         {
             "name": "table_04",
             "capacity": [
-                2,
-                3
+                3,
+                4
             ],
             "state": "empty",
             "t_in": "19:00",

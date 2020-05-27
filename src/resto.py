@@ -1,5 +1,5 @@
 """
-    My
+    Resto
     =====
 
     Provides
@@ -89,7 +89,7 @@ class Queue:
 
     def update_arrivals(self, now, verbose=False):
         if verbose:
-            print(f"Updating arrivals")
+            print(f"Updating arrivals ...")
         if self.arrivals_register != []:
             if self.arrivals_register[0][0] < now:
                 cond = True
@@ -158,7 +158,7 @@ class Resto:
 
     def update_departures(self, now, verbose=False):
         if verbose:
-            print(f"Updating departures on Tabless")
+            print(f"Updating departures on Tables ...")
         departures = []
         for i, table in enumerate(self.tables):
             if table.state == "taken":
@@ -184,45 +184,23 @@ class Resto:
         return departures
 
     def update_sits(self, queue, now, verbose=False):
-        if verbose:
-            print("Updating sits")
+        if verbose: print("Updating sits ...")
         empty_tables = list(filter(lambda table: table.state == "empty", self.tables))
 
         if empty_tables:  # If there are empty tables
             if queue.queue:  # If there are clients in the Queue
                 new_queue = []  # New Queue wont have the Clients that haven't sit
-                for i, client in enumerate(
-                    queue.queue
-                ):  # For each client see if it can sit: going in order of priority
+                for i, client in enumerate( queue.queue ):  # For each client see if it can sit: going in order of priority
                     # Get tables where the client can sit
-                    valid_tables = list(
-                        filter(
-                            lambda table: (table.state == "empty")
-                            and (client.cant in table.capacity),
-                            empty_tables,
-                        )
-                    )
+                    valid_tables = list(filter(lambda table: (table.state == "empty") and (client.cant in table.capacity), empty_tables))
                     if valid_tables:  # if there are valid tables for the client
                         table = random.choice(valid_tables)  # Choose one randomly
-                        table.state, table.t_in, table.client = (
-                            "taken",
-                            now,
-                            client,
-                        )  # Update the state of the table
-                        if verbose:
-                            print(
-                                f"    Client:{client.name} sit down in table:{table.name}"
-                            )
+                        table.state, table.t_in, table.client = ("taken",now,client)  # Update the state of the table
+                        if verbose: print(f"    Client:{client.name} sit down in table:{table.name}")
                     else:  # If the Client doesn´t sit it will be in the new_queue if not he will not be
                         new_queue.append(client)
-                        if verbose:
-                            print(
-                                f"    No tables available (of:{client.cant}) for client:{client.name}"
-                            )
+                        if verbose: print(f"    No tables available (of:{client.cant}) for client:{client.name}")
                 queue.queue = new_queue
-            else:
-                if verbose:
-                    print("    No clients in queue")
         else:
             if verbose:
                 print("    No empty Tables")

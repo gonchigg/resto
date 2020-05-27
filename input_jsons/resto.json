@@ -6,7 +6,7 @@
                 2
             ],
             "state": "taken",
-            "t_in": "19:22",
+            "t_in": "18:32",
             "hist_id": "id_01"
         },
         {
@@ -15,26 +15,27 @@
                 4
             ],
             "state": "taken",
-            "t_in": "19:12",
+            "t_in": "18:42",
             "hist_id": "id_01"
         },
         {
             "name": "table_03",
             "capacity": [
-                4
+                2,
+                3
             ],
             "state": "taken",
-            "t_in": "19:45",
+            "t_in": "18:45",
             "hist_id": "id_01"
         },
         {
             "name": "table_04",
             "capacity": [
-                2,
-                3
+                3,
+                4
             ],
-            "state": "taken",
-            "t_in": "19:43",
+            "state": "empty",
+            "t_in": "18:41",
             "hist_id": "id_01"
         },
         {
@@ -43,7 +44,7 @@
                 3,
                 4
             ],
-            "state": "taken",
+            "state": "empty",
             "t_in": "19:21",
             "hist_id": "id_01"
         },
