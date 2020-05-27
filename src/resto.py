@@ -134,10 +134,10 @@ class Resto:
         self.hists = {}
         self.departures = []
 
-    def add_hist(self, hist, hist_id, media, dispersion):
+    def add_hist(self, hist, hist_id, mean, deviation):
         self.hists[f"{hist_id}"] = {
-            "media": media,
-            "dispersion": dispersion,
+            "mean": mean,
+            "deviation": deviation,
             "hist": hist / sum(hist),
             "hist_acum": np.cumsum(hist / sum(hist)),
         }
@@ -225,10 +225,10 @@ class Resto:
         print(x)
         if hists:
             x = PrettyTable()
-            x.title = "Histogramas"
-            x.field_names = ["hist_id", "len(counts)", "len(couns_acum)"]
-            for hist in self.hists:
-                x.add_row([hist["hist_id"], len(hist["hist"]), len(hist["hist_acum"])])
+            x.title = "Histograms"
+            x.field_names = ["hist_id", "mean", "deviation","len(counts)", "len(counts_acum)"]
+            for key in self.hists:
+                x.add_row( [ key, self.hists[key]["mean"], self.hists[key]["deviation"], len(self.hists[key]["hist"]), len(self.hists[key]["hist_acum"])] )
             print(x)
 # ------------------------------------------------------------------------------------------
 # Auxiliar Functions
@@ -272,7 +272,7 @@ def load_resto(file="input_jsons/resto.json", cant_tables=20):
     # Load histogramas
     for hist in resto_dic["hists"]:
         shape, scale = Aux.gamma_parameters(
-            media=hist["media"], dispersion=hist["dispersion"]
+            mean=hist["mean"], deviation=hist["deviation"]
         )
         bins = np.arange(0, resto_dic["t_max_sim"], resto_dic["time_step"])
         gamma = np.random.gamma(shape, scale, 5000)
@@ -281,8 +281,8 @@ def load_resto(file="input_jsons/resto.json", cant_tables=20):
         resto.add_hist(
             hist=count,
             hist_id=hist["hist_id"],
-            media=hist["media"],
-            dispersion=hist["dispersion"],
+            mean=hist["mean"],
+            deviation=hist["deviation"],
         )
     return resto
 
@@ -467,11 +467,11 @@ def giveme_departures(resto):
     """
     departures = []
     for table in resto.tables:
-        media, dispersion = (
-            resto.hists[f"{table.hist_id}"]["media"],
-            resto.hists[f"{table.hist_id}"]["dispersion"],
+        mean, deviation = (
+            resto.hists[f"{table.hist_id}"]["mean"],
+            resto.hists[f"{table.hist_id}"]["deviation"],
         )
-        shape, scale = Aux.gamma_parameters(media, dispersion)
+        shape, scale = Aux.gamma_parameters(mean, deviation)
         departures.append(list(np.random.gamma(shape, scale, 20)))
     return departures
 ############################################################################################

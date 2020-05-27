@@ -210,13 +210,13 @@
     "hists": [
         {
             "hist_id": "id_01",
-            "media": 50,
-            "dispersion": 10
+            "mean": 50,
+            "deviation": 10
         },
         {
             "hist_id": "id_02",
-            "media": 60,
-            "dispersion": 12
+            "mean": 60,
+            "deviation": 12
         }
     ],
     "t_max_sim": 120,

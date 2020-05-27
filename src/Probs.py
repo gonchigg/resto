@@ -9,19 +9,30 @@ import datetime as dt
 import numpy as np
 from itertools import combinations, groupby
 from prettytable import PrettyTable
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+
 
 def calc_probs(now, now_max, queue, resto, step, timeit=False, debug=False, verbose=False, vverbose=False):
     if verbose: print("Calculating probabilities ...")
     if vverbose and queue.queue : print("    queue looks:")
     if vverbose and queue.queue : queue.print_queue()
-    p = np.zeros(len(queue.queue))
+    nows = []
+    while now < now_max:
+        nows.append(now)
+        now = now + dt.timedelta(minutes=step)
+    nows = tuple(nows)
+
+    probs = np.zeros(shape=(len(queue.queue),len(nows)))
+
     for i in range(len(queue.queue)):
         clients = queue.queue[0:i+1]
         if vverbose: print(f"        calculating probs for clients:")
         if vverbose: print_group(clients)
-        p[i] = calc_prob(now,now_max,step,clients,resto,timeit,debug,verbose,vverbose)
+        probs[i] = calc_prob(nows,step,clients,resto,timeit,debug,verbose,vverbose)
+    return probs
 
-def calc_prob(now,now_max,step,clients,resto,timeit=False,debug=False,verbose=False,vverbose=False):
+def calc_prob(nows,step,clients,resto,timeit=False,debug=False,verbose=False,vverbose=False):
     """ For a dermined group of clients and for all times
     """
 
@@ -29,20 +40,14 @@ def calc_prob(now,now_max,step,clients,resto,timeit=False,debug=False,verbose=Fa
     if vverbose: print("    Posible ways of sitting")
     if vverbose: tree.print_branches()
 
-    nows = []
-    while now < now_max:
-        nows.append(now)
-        now = now + dt.timedelta(minutes=step)
-    nows = tuple(nows)
-
     probs = np.zeros(len(nows))
-    for i,_now in enumerate(nows):
+    for i,now in enumerate(nows):
         p_total = 0.0
         for branch in tree.branches:
             p_branch = 1.0
             for table in branch:
-                #                     resto.hists[hist_id][hist_acum][index]
-                p_branch = p_branch * resto.hists[table.hist_id][hist_acum][int((_now-table.t_in).total_seconds/60)]
+                index = int(((now-table.t_in).total_seconds())/(60*step))
+                p_branch = p_branch * resto.hists[table.hist_id]["hist_acum"][index]
             p_total += p_branch
         probs[i] = p_total
     return probs
@@ -55,14 +60,29 @@ def print_group(clients):
         x.add_row([i, client.name, client.cant, client.code])
     print(x)
 
-def get_starting_index(now,resto,step):
-    index_vec = np.zeros(len(resto.tables),dtype=np.int8)
-    for i in range(len(resto.tables)):
-        if resto.tables[i].state == "empty":
-            index_vec[i] = 99
-        else:
-            index_vec[i] = int((((now-resto.tables[i].t_in).total_seconds() )/60)/step)
-    return index_vec
+def plot_probs(nows,probs,clients,verbose=False,save=False,show=False):
+    if verbose: print("Plotting probs")
+    if verbose: print(f"    probs.shape: {probs.shape}")
+    
+    if probs.shape[0] > 0:
+        colors = ['crimson','darkgoldenrod','hotpink','teal','olivedrab','peru','violet','forestgreen','chocolate','firebrick','lightblue','khaki','salmon','orchid','springgreen','maroon','fuchsia','mediumorchid','turquoise','crimson','darkslategrey']
+        myFmt = mdates.DateFormatter('%H:%M')
+            
+
+        fig = plt.figure(num=f"probs_{nows[0].strftime('%H:%M')}",figsize=(10,6),facecolor='papayawhip',edgecolor='black')
+        ax = fig.add_subplot(1,1,1,facecolor='antiquewhite')
+        ax.set_ylabel("Probabilidad acumulada")
+        ax.set_xlabel("Tiempo [H:M]")
+        title = f"Probabilidad acumulada de liberación de al menos X mesas. Hora:{nows[0].strftime('%H:%M')}"
+        ax.grid(True)
+        
+        for i in range(probs.shape[0]):
+            ax.plot(nows, probs[i,:], label = clients[i] ,color=colors[i], linewidth=3)
+            ax.xaxis.set_major_formatter(myFmt)
+            plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
+            
+        if save: fig.savefig(dpi=fig.dpi)
+        if show: plt.show()
 
 class Tree:
     """ Class used to calculate all the possible forms of arraging groups of clients in groups of Tables.

@@ -71,19 +71,19 @@ def plot_timedelta_histogram(times, step, strftime_formatter="%H:%M", density=Fa
     if show: plt.show()
     return
 
-def gamma_parameters(media, dispersion):
+def gamma_parameters(mean, deviation):
     """
-        Get the parameters shape and scale of a Gamma Distribution parting from the media and the dispersion.
+        Get the parameters shape and scale of a Gamma Distribution parting from the mean and the deviation.
 
         Parameters
         ----------
-            media: float, non-optional
-            dispersion: float, non-optional
+            mean: float, non-optional
+            deviation: float, non-optional
 
         Return
         ------
             shape: float
             scale: float"""
-    shape = (float(media) / float(dispersion)) * (float(media) / float(dispersion))
-    scale = float(media) / shape
+    shape = (float(mean) / float(deviation)) * (float(mean) / float(deviation))
+    scale = float(mean) / shape
     return shape, scale
