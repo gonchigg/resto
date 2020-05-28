@@ -27,7 +27,7 @@ def calc_probs(now, now_max, queue, resto, step, timeit=False, debug=False, verb
 
     for i in range(len(queue.queue)):
         clients = queue.queue[0:i+1]
-        if vverbose: print(f"        calculating probs for clients:")
+        if vverbose: print(f"    calculating probs for clients:")
         if vverbose: print_group(clients)
         probs[i] = calc_prob(nows,step,clients,resto,timeit,debug,verbose,vverbose)
     return probs
@@ -43,13 +43,24 @@ def calc_prob(nows,step,clients,resto,timeit=False,debug=False,verbose=False,vve
     probs = np.zeros(len(nows))
     for i,now in enumerate(nows):
         p_total = 0.0
-        for branch in tree.branches:
+        for j,branch in enumerate(tree.branches):
             p_branch = 1.0
-            for table in branch:
-                index = int(((now-table.t_in).total_seconds())/(60*step))
-                p_branch = p_branch * resto.hists[table.hist_id]["hist_acum"][index]
+            for table in tree.tables_of_interest:
+                if table in branch:
+                    if table.status =="empty":
+                        p_branch *= 1
+                    else:
+                        index = int(((now-table.t_in).total_seconds())/(60*step))
+                        p_branch *= resto.hists[table.hist_id]["hist_acum"][index]
+                else:
+                    if table.status=="empty":
+                        p_branch *= 0.0
+                    else:
+                        index = int(((now-table.t_in).total_seconds())/(60*step))
+                        p_branch *= (1-resto.hists[table.hist_id]["hist_acum"][index])
             p_total += p_branch
         probs[i] = p_total
+    #probs = np.cumsum(probs)
     return probs
 
 def print_group(clients):
@@ -165,18 +176,13 @@ class Tree:
 
             branches = _get_branches(node)  # Recupero las branches del tree
             total = sum(node.cants.values())  # Cantidad de clientes
-            branches = list(
-                filter(lambda x: len(x) == total, branches)
-            )  # Elimina las branches que son mas cortas
-            branches = [
-                sorted(branche, key=lambda table: table.name) for branche in branches
-            ]  # Las ordeno por placer visual
-            branches = sorted(branches, key=_fname)  # Las ordeno por placer visual
-            group_obj = groupby(branches, key=_gname)  # Elimina duplicados
+            branches = list(filter(lambda x: len(x) >= total, branches))  # Elimina las branches que tienen menos mesas que la cantidad de clientes
+            branches = [ sorted(branche, key=lambda table: table.name) for branche in branches] # Las ordeno por placer visual
+            branches = sorted(branches, key=_fname)   # Las ordeno por placer visual
+            group_obj = groupby(branches, key=_gname) # Elimina duplicados
             branches = [list(value)[0] for key, value in group_obj]  # Elimina duplicados
             return branches
 
-        self.tables = tables
         cants = {}
         for client in clients:  # Carga el dic cants
             try:
@@ -184,9 +190,19 @@ class Tree:
             except:
                 cants[f"{client.cant}"] = 1
 
-        node = _Node(cants=cants, comb_tables=None, tables=tables, level=0)
+        def check_cond(table,cants):
+            for cant in table.capacity:
+                if cant in ([int(key) for key in cants.keys()]):
+                    return True
+            return False
+
+        self.tables_of_interest = [ table  for table in tables if check_cond(table,cants) ]
+        
+        node = _Node(cants=cants, comb_tables=None, tables=self.tables_of_interest, level=0)
         build_tree(node, timeit=timeit, debug=debug)
         self.branches = get_branches(node, timeit=timeit, debug=debug)
+
+
 
     @Dec.debug
     @Dec.timeit
@@ -194,12 +210,12 @@ class Tree:
         x = PrettyTable()
         x.title = title
         field_names = ["branche"]
-        for table in self.tables:
+        for table in self.tables_of_interest:
             field_names.append(f"{table.name}-{table.capacity}")
         x.field_names = field_names
         for i, branche in enumerate(self.branches):
             row = [i]
-            for table in self.tables:
+            for table in self.tables_of_interest:
                 if table in branche:
                     row.append("X")
                 else:

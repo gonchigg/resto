@@ -29,22 +29,22 @@ class Table:
             Time in which the Table was last ocuppied.
         hist_id: string, non-optional.
             Identification of the histogram that represents the behaving of the Table.
-        state: string, non-optional.
-            State of the Table belonging to the variable 'states'.
+        status: string, non-optional.
+            status of the Table belonging to the variable 'Status'.
         client: Client object, non-optional.
             Object of the client that is currently on the Table."""
 
-    states = ("taken", "empty", "inactive")  # All possiblle states of a Table
+    Status = ("taken", "empty", "inactive")  # All possiblle states of a Table
 
-    def __init__(self, name, capacity, t_in, hist_id, state="empty", client=None):
+    def __init__(self, name, capacity, t_in, hist_id, status="empty", client=None):
         """Initialize the Class Table:"""
         self.name = name
         self.client = client
         self.capacity = capacity
         self.t_in = t_in
-        if state not in self.states:
-            raise ValueError("%s is not a valid title." % state)
-        self.state = state
+        if status not in self.Status:
+            raise ValueError("%s is not a valid title." % status)
+        self.status = status
         self.hist_id = hist_id
 
 class Client:
@@ -142,7 +142,7 @@ class Resto:
             "hist_acum": np.cumsum(hist / sum(hist)),
         }
 
-    def add_table(self, name="", capacity=[], t_in=dt.datetime.today(), state="empty", hist_id="hist_01", client=None):
+    def add_table(self, name="", capacity=[], t_in=dt.datetime.today(), status="empty", hist_id="hist_01", client=None):
         if name == "":
             name = f"table_{len(self.tables+1):02d}"
         self.tables.append(
@@ -150,7 +150,7 @@ class Resto:
                 name=name,
                 capacity=capacity,
                 t_in=t_in,
-                state=state,
+                status=status,
                 hist_id=hist_id,
                 client=client,
             )
@@ -161,7 +161,7 @@ class Resto:
             print(f"Updating departures on Tables ...")
         departures = []
         for i, table in enumerate(self.tables):
-            if table.state == "taken":
+            if table.status == "taken":
                 if ((now - table.t_in).total_seconds()) / 60 > self.departures[i][0]:
                     t_out = table.t_in + dt.timedelta(minutes=self.departures[i][0])
                     if verbose:
@@ -180,22 +180,22 @@ class Resto:
                         )
                     )
                     (self.departures[i]).pop(0)
-                    table.state = "empty"
+                    table.status = "empty"
         return departures
 
     def update_sits(self, queue, now, verbose=False):
         if verbose: print("Updating sits ...")
-        empty_tables = list(filter(lambda table: table.state == "empty", self.tables))
+        empty_tables = list(filter(lambda table: table.status == "empty", self.tables))
 
         if empty_tables:  # If there are empty tables
             if queue.queue:  # If there are clients in the Queue
                 new_queue = []  # New Queue wont have the Clients that haven't sit
                 for i, client in enumerate( queue.queue ):  # For each client see if it can sit: going in order of priority
                     # Get tables where the client can sit
-                    valid_tables = list(filter(lambda table: (table.state == "empty") and (client.cant in table.capacity), empty_tables))
+                    valid_tables = list(filter(lambda table: (table.status == "empty") and (client.cant in table.capacity), empty_tables))
                     if valid_tables:  # if there are valid tables for the client
                         table = random.choice(valid_tables)  # Choose one randomly
-                        table.state, table.t_in, table.client = ("taken",now,client)  # Update the state of the table
+                        table.status, table.t_in, table.client = ("taken",now,client)  # Update the status of the table
                         if verbose: print(f"    Client:{client.name} sit down in table:{table.name}")
                     else:  # If the Client doesn´t sit it will be in the new_queue if not he will not be
                         new_queue.append(client)
@@ -208,16 +208,16 @@ class Resto:
     def print_resto(self, hists=False):
         x = PrettyTable()
         x.title = "Tables"
-        x.field_names = ["name", "capacity", "state", "t_in", "hist_id"]
+        x.field_names = ["name", "capacity", "status", "t_in", "hist_id"]
         for table in self.tables:
-            if table.state == "empty":
-                x.add_row([table.name, table.capacity, table.state, "-", table.hist_id])
-            if table.state == "taken":
+            if table.status == "empty":
+                x.add_row([table.name, table.capacity, table.status, "-", table.hist_id])
+            if table.status == "taken":
                 x.add_row(
                     [
                         table.name,
                         table.capacity,
-                        table.state,
+                        table.status,
                         table.t_in.strftime("%H:%M"),
                         table.hist_id,
                     ]
@@ -234,7 +234,7 @@ class Resto:
 # Auxiliar Functions
 # ------------------------------------------------------------------------------------------
 def load_resto(file="input_jsons/resto.json", cant_tables=20):
-    """ loads the state of the resto/bar and return an object Resto
+    """ loads the status of the resto/bar and return an object Resto
 
         Parameters
         ----------
@@ -263,7 +263,7 @@ def load_resto(file="input_jsons/resto.json", cant_tables=20):
         resto.add_table(
             name=table["name"],
             capacity=table["capacity"],
-            state=table["state"],
+            status=table["status"],
             t_in=time,
             hist_id=table["hist_id"],
             client=None,
@@ -286,9 +286,8 @@ def load_resto(file="input_jsons/resto.json", cant_tables=20):
         )
     return resto
 
-def load_queue(file="input_jsons/queue.json", t_arrival=dt.datetime.today(), cant_clients=5
-):
-    """ loads the state of the Queue and return an object Queue
+def load_queue(file="input_jsons/queue.json", t_arrival=dt.datetime.today(), cant_clients=5):
+    """ loads the status of the Queue and return an object Queue
 
         Parameters
         ----------
