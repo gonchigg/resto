@@ -71,27 +71,60 @@ def print_group(clients):
         x.add_row([i, client.name, client.cant, client.code])
     print(x)
 
-def plot_probs(nows,probs,clients,i,verbose=False,save=False,show=False):
+def plot_probs(nows,probs,queue,i,resto,verbose=False,save=False,show=False):
     if verbose: print("Plotting probs")
     if verbose: print(f"    probs.shape: {probs.shape}")
     
     if probs.shape[0] > 0:
-        colors = ['crimson','darkgoldenrod','hotpink','teal','olivedrab','peru','violet','forestgreen','chocolate','firebrick','lightblue','khaki','salmon','orchid','springgreen','maroon','fuchsia','mediumorchid','turquoise','crimson','darkslategrey']
+        gridsize = (4, 3)
+        fig = plt.figure(num=f"probs_{nows[0].strftime('%H:%M')}",figsize=(12,8),facecolor='papayawhip',edgecolor='black')
+        # ------------------------------------------------------------------------------------------
+        # Plot probs
+        # ------------------------------------------------------------------------------------------
+        ax_probs = plt.subplot2grid(gridsize, (0,0), colspan=2, rowspan=2, facecolor='antiquewhite')
         myFmt = mdates.DateFormatter('%H:%M')
-            
-
-        fig = plt.figure(num=f"probs_{nows[0].strftime('%H:%M')}",figsize=(10,6),facecolor='papayawhip',edgecolor='black')
-        ax = fig.add_subplot(1,1,1,facecolor='antiquewhite')
-        ax.set_ylabel("Probabilidad acumulada")
-        ax.set_xlabel("Tiempo [H:M]")
+        ax_probs.set_ylabel("Probabilidad acumulada")
+        ax_probs.set_xlabel("Tiempo [H:M]")
         title = f"Probabilidad acumulada de liberación de al menos X mesas. Hora:{nows[0].strftime('%H:%M')}"
-        ax.grid(True)
-        
-        for i in range(probs.shape[0]):
-            ax.plot(nows, probs[i,:], label = clients[i] ,color=colors[i], linewidth=3)
-            ax.xaxis.set_major_formatter(myFmt)
-            plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
-            
+        ax_probs.grid(True)
+        for j in range(probs.shape[0]):
+            ax_probs.plot(nows, probs[j,:], label = queue.queue[j].name , linewidth=3, color=queue.queue[j].color )
+        ax_probs.legend(loc='best')
+        ax_probs.xaxis.set_major_formatter(myFmt)
+        plt.setp(ax_probs.get_xticklabels(), rotation=0, ha="right", rotation_mode="anchor")
+        # ------------------------------------------------------------------------------------------
+        # Plot Queue Table
+        # ------------------------------------------------------------------------------------------
+        ax_queue = plt.subplot2grid(gridsize, (0,2), colspan=1, rowspan=2,facecolor='antiquewhite')
+        cellText = []
+        for j,client in enumerate(queue.queue):
+            cellText.append( [f"{(j+1):02d}",client.name,client.cant] )
+        colLabels = ("Order","Name","Quantity")
+        ax_queue.axis('tight')
+        ax_queue.axis('off')
+        ax_queue.table(cellText=cellText,colLabels=colLabels,loc='upper center',cellLoc='center')
+        ax_queue.set_title('Queue status')
+        # ------------------------------------------------------------------------------------------
+        # Plot Resto
+        # ------------------------------------------------------------------------------------------
+        ax_resto = plt.subplot2grid(gridsize, (3,0), colspan=3, rowspan=1,facecolor='antiquewhite')
+        #ax_resto.axis('off')
+        for j,table in enumerate(resto.tables):
+            x = 2.8*(j%5)
+            y = 5*int(j/5) + 0.3
+            if table.status=="Empty":
+                ax_resto.text(x=x,y=y,s=f'{table.name}',style='italic',bbox={'facecolor':'green','alpha':0.5})
+            else:
+                try: 
+                    ax_resto.text(x=x,y=y,s=f'{table.name}:\n{table.t_in.strftime("%H:%M")}, {table.capacity}\n{table.client.name}', style='italic', bbox={'facecolor':'red','alpha':0.5})
+                except:
+                    ax_resto.text(x=x,y=y,s=f'{table.name}:\n{table.t_in.strftime("%H:%M")}, {table.capacity}', style='italic', bbox={'facecolor':'red','alpha':0.5})
+
+        ax_resto.axis([-0.5, 14, -1, 10])
+        ax_resto.tick_params( axis='x', which='both', bottom=False, top=False, labelbottom=False)
+        ax_resto.tick_params( axis='y', which='both', left=False, right=False, labelleft=False)
+        ax_resto.set_title('Resto status')
+
         if save: fig.savefig(fname=f"images/frame_{i:02d}")
         if show: plt.show()
         plt.close(fig)
@@ -178,13 +211,16 @@ class Tree:
                 return out
 
             branches = _get_branches(node)  # Recupero las branches del tree
-            total = sum(node.cants.values())  # Cantidad de clientes
-            branches = list(filter(lambda x: len(x) >= total, branches))  # Elimina las branches que tienen menos mesas que la cantidad de clientes
-            branches = [ sorted(branche, key=lambda table: table.name) for branche in branches] # Las ordeno por placer visual
-            branches = sorted(branches, key=_fname)   # Las ordeno por placer visual
-            group_obj = groupby(branches, key=_gname) # Elimina duplicados
-            branches = [list(value)[0] for key, value in group_obj]  # Elimina duplicados
-            return branches
+            if branches:
+                total = sum(node.cants.values())  # Cantidad de clientes
+                branches = list(filter(lambda x: len(x) >= total, branches))  # Elimina las branches que tienen menos mesas que la cantidad de clientes
+                branches = [ sorted(branche, key=lambda table: table.name) for branche in branches] # Las ordeno por placer visual
+                branches = sorted(branches, key=_fname)   # Las ordeno por placer visual
+                group_obj = groupby(branches, key=_gname) # Elimina duplicados
+                branches = [list(value)[0] for key, value in group_obj]  # Elimina duplicados
+                return branches
+            else:
+                return []
 
         cants = {}
         for client in clients:  # Carga el dic cants
@@ -204,8 +240,6 @@ class Tree:
         node = _Node(cants=cants, comb_tables=None, tables=self.tables_of_interest, level=0)
         build_tree(node, timeit=timeit, debug=debug)
         self.branches = get_branches(node, timeit=timeit, debug=debug)
-
-
 
     @Dec.debug
     @Dec.timeit

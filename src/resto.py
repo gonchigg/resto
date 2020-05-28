@@ -60,12 +60,13 @@ class Client:
         t_arrival: datetime.datetime object, non-optional.
             Time at which the client arrive at the queue"""
 
-    def __init__(self, name, code, cant, t_arrival=None):
+    def __init__(self, name, code, cant,color='red', t_arrival=None):
         """Initialize the Class Client:"""
         self.name = name
         self.code = code
         self.cant = cant
         self.t_arrival = t_arrival
+        self.color = color
 # ------------------------------------------------------------------------------------------
 # Main-Classes: Queue, Resto
 #       Queue ~ List of Clients, and methods
@@ -75,6 +76,8 @@ class Queue:
     def __init__(self):
         self.queue = []
         self.arrivals_register = None
+        self.colors = colors = ['crimson','darkgoldenrod','hotpink','teal','olivedrab','peru','violet','forestgreen','chocolate','firebrick','lightblue','khaki','salmon','orchid','springgreen','maroon','fuchsia','mediumorchid','turquoise','crimson','darkslategrey']
+        self.counter = 0
 
     def add_client(self, cant, name="", t_arrival=dt.datetime.today()):
         codes = list(filter(lambda client: client.code, self.queue))
@@ -83,7 +86,8 @@ class Queue:
             code = np.random.randint(low=0, high=9999)
         if name == "":
             name = f"Juan_{code:04d}"
-        client = Client(name=name, code=code, cant=cant, t_arrival=t_arrival)
+        client = Client(name=name, code=code, cant=cant, color=self.colors[self.counter], t_arrival=t_arrival)
+        self.counter += 1
         self.queue.append(client)
         return client
 
