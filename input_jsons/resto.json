@@ -34,7 +34,7 @@
                 3,
                 4
             ],
-            "status": "empty",
+            "status": "taken",
             "t_in": "18:41",
             "hist_id": "id_01"
         },
@@ -44,8 +44,8 @@
                 3,
                 4
             ],
-            "status": "empty",
-            "t_in": "19:21",
+            "status": "taken",
+            "t_in": "18:31",
             "hist_id": "id_01"
         },
         {
@@ -54,7 +54,7 @@
                 2
             ],
             "status": "taken",
-            "t_in": "19:23",
+            "t_in": "18:48",
             "hist_id": "id_01"
         },
         {

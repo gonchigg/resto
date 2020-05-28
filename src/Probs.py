@@ -95,6 +95,7 @@ def plot_probs(nows,probs,clients,i,verbose=False,save=False,show=False):
         if save: fig.savefig(fname=f"images/frame_{i:02d}")
         if show: plt.show()
         plt.close(fig)
+
 class Tree:
     """ Class used to calculate all the possible forms of arraging groups of clients in groups of Tables.
         Mainly a Tree that grows staging all the possibilities or arraging clients.

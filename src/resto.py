@@ -259,7 +259,7 @@ def load_resto(file="input_jsons/resto.json", cant_tables=20):
     while i < cant_tables and i < resto_dic["cant_tables"]:
         table = resto_dic["tables"][i]
         time = dt.datetime.strptime(table["t_in"], "%H:%M")
-        time.replace(year=now.year, month=now.month, day=now.day)
+        time = time.replace(year=now.year, month=now.month, day=now.day)
         resto.add_table(
             name=table["name"],
             capacity=table["capacity"],
