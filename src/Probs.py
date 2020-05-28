@@ -71,7 +71,7 @@ def print_group(clients):
         x.add_row([i, client.name, client.cant, client.code])
     print(x)
 
-def plot_probs(nows,probs,clients,verbose=False,save=False,show=False):
+def plot_probs(nows,probs,clients,i,verbose=False,save=False,show=False):
     if verbose: print("Plotting probs")
     if verbose: print(f"    probs.shape: {probs.shape}")
     
@@ -92,9 +92,9 @@ def plot_probs(nows,probs,clients,verbose=False,save=False,show=False):
             ax.xaxis.set_major_formatter(myFmt)
             plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
             
-        if save: fig.savefig(dpi=fig.dpi)
+        if save: fig.savefig(fname=f"images/frame_{i:02d}")
         if show: plt.show()
-
+        plt.close(fig)
 class Tree:
     """ Class used to calculate all the possible forms of arraging groups of clients in groups of Tables.
         Mainly a Tree that grows staging all the possibilities or arraging clients.
@@ -115,26 +115,28 @@ class Tree:
                 self.tables = tables
                 self.level = level
 
+        def all_combinations(tables):
+            combs = []
+            for i in range(len(tables)+1):
+                combs.extend( list(combinations(tables,i)))
+            return combs
+
         def _build_tree(node):
             if not node.cants:
+                # When no more cants it should return all the possible combinations of tables that remain
+                tuples = all_combinations(node.tables)
+                for _tuple in tuples:
+                    new_node = _Node(tables=None,comb_tables=_tuple,cants=None,level=node.level + 1)
+                    node.children.append(new_node)
                 return
             else:
                 cants_aux = node.cants.copy()
                 m = next(iter(cants_aux))  # De cuanto son las tables
                 n = cants_aux.pop(m)  # Cuantas de esas tables necesito
                 tables_of_interest = filter(lambda x: int(m) in x.capacity, node.tables)
-                for tupla in combinations(
-                    tables_of_interest, n
-                ):  # Iterar sobre todas las combinaciones posibles de tables
-                    tables_aux = tuple(
-                        filter(lambda table: table not in tupla, node.tables)
-                    )
-                    new_node = _Node(
-                        tables=tables_aux,
-                        comb_tables=tupla,
-                        cants=cants_aux,
-                        level=node.level + 1,
-                    )
+                for tupla in combinations(tables_of_interest, n):  # Iterar sobre todas las combinaciones posibles de tables
+                    tables_aux = tuple(filter(lambda table: table not in tupla, node.tables) )
+                    new_node = _Node(tables=tables_aux,comb_tables=tupla,cants=cants_aux,level=node.level + 1)
                     node.children.append(new_node)
                     _build_tree(node=new_node)
                 return
