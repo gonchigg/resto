@@ -11,6 +11,7 @@ import numpy as np
 import datetime as dt
 import json
 import random
+import scipy.ndimage
 import Auxiliar as Aux
 from prettytable import PrettyTable
 
@@ -76,7 +77,7 @@ class Queue:
     def __init__(self):
         self.queue = []
         self.arrivals_register = None
-        self.colors = colors = ['crimson','darkgoldenrod','hotpink','teal','olivedrab','peru','violet','forestgreen','chocolate','firebrick','lightblue','khaki','salmon','orchid','springgreen','maroon','fuchsia','mediumorchid','turquoise','crimson','darkslategrey']
+        self.colors =  ['crimson','darkgoldenrod','hotpink','teal','olivedrab','peru','violet','forestgreen','chocolate','firebrick','lightblue','khaki','salmon','orchid','springgreen','maroon','fuchsia','mediumorchid','turquoise','crimson','darkslategrey']
         self.counter = 0
 
     def add_client(self, cant, name="", t_arrival=dt.datetime.today()):
@@ -86,7 +87,7 @@ class Queue:
             code = np.random.randint(low=0, high=9999)
         if name == "":
             name = f"Juan_{code:04d}"
-        client = Client(name=name, code=code, cant=cant, color=self.colors[self.counter], t_arrival=t_arrival)
+        client = Client(name=name, code=code, cant=cant, color=self.colors[( self.counter % (len(self.colors)))], t_arrival=t_arrival)
         self.counter += 1
         self.queue.append(client)
         return client
@@ -137,14 +138,12 @@ class Resto:
         self.tables = []
         self.hists = {}
         self.departures = []
+        self.time_step = 5
 
-    def add_hist(self, hist, hist_id, mean, deviation):
-        self.hists[f"{hist_id}"] = {
-            "mean": mean,
-            "deviation": deviation,
-            "hist": hist / sum(hist),
-            "hist_acum": np.cumsum(hist / sum(hist)),
-        }
+    def add_hist(self, hist, hist_id, mean, deviation, smooth=True):
+        if smooth:
+            hist = scipy.ndimage.gaussian_filter1d(input=hist,sigma=1,mode='constant')
+        self.hists[f"{hist_id}"] = { "mean": mean, "deviation": deviation, "hist": hist / sum(hist), "hist_acum": np.cumsum(hist / sum(hist)) }
 
     def add_table(self, name="", capacity=[], t_in=dt.datetime.today(), status="empty", hist_id="hist_01", client=None):
         if name == "":
@@ -191,15 +190,17 @@ class Resto:
         if verbose: print("Updating sits ...")
         empty_tables = list(filter(lambda table: table.status == "empty", self.tables))
 
+        sits = []
         if empty_tables:  # If there are empty tables
             if queue.queue:  # If there are clients in the Queue
-                new_queue = []  # New Queue wont have the Clients that haven't sit
+                new_queue = []  # New Queue wont have the Clients that have sit
                 for i, client in enumerate( queue.queue ):  # For each client see if it can sit: going in order of priority
                     # Get tables where the client can sit
                     valid_tables = list(filter(lambda table: (table.status == "empty") and (client.cant in table.capacity), empty_tables))
                     if valid_tables:  # if there are valid tables for the client
                         table = random.choice(valid_tables)  # Choose one randomly
                         table.status, table.t_in, table.client = ("taken",now,client)  # Update the status of the table
+                        sits.append(table)
                         if verbose: print(f"    Client:{client.name} sit down in table:{table.name}")
                     else:  # If the Client doesn´t sit it will be in the new_queue if not he will not be
                         new_queue.append(client)
@@ -208,6 +209,7 @@ class Resto:
         else:
             if verbose:
                 print("    No empty Tables")
+        return tuple(sits)
 
     def print_resto(self, hists=False):
         x = PrettyTable()
@@ -237,7 +239,7 @@ class Resto:
 # ------------------------------------------------------------------------------------------
 # Auxiliar Functions
 # ------------------------------------------------------------------------------------------
-def load_resto(file="input_jsons/resto.json", cant_tables=20):
+def load_resto(file="input_jsons/resto.json",smooth_hist=True, cant_tables=20):
     """ loads the status of the resto/bar and return an object Resto
 
         Parameters
@@ -256,6 +258,7 @@ def load_resto(file="input_jsons/resto.json", cant_tables=20):
     now = dt.datetime.today()
     with open(file, "r") as f:
         resto_dic = json.load(f)
+    resto.time_step = resto_dic["time_step"]
     # Load Tables
     i = 0
     if cant_tables > resto_dic["cant_tables"]:
@@ -282,12 +285,7 @@ def load_resto(file="input_jsons/resto.json", cant_tables=20):
         gamma = np.random.gamma(shape, scale, 5000)
         count, _bins = np.histogram(gamma, bins, density=True)
         count = count / sum(count)
-        resto.add_hist(
-            hist=count,
-            hist_id=hist["hist_id"],
-            mean=hist["mean"],
-            deviation=hist["deviation"],
-        )
+        resto.add_hist(hist=count, hist_id=hist["hist_id"], mean=hist["mean"], deviation=hist["deviation"],smooth=smooth_hist)
     return resto
 
 def load_queue(file="input_jsons/queue.json", t_arrival=dt.datetime.today(), cant_clients=5):
@@ -365,7 +363,7 @@ def giveme_arrivals(tables, quantity_factor=4, plot=False, step=5, proportions=[
         ancho = 30
         if dt.timedelta() <= (x - now) < dt.timedelta(minutes=ancho):
             return (
-                ((pow(int(((x - now).total_seconds() / 60) + 1), 3)) / 2700)
+                (pow(int(((x - now).total_seconds() / 60) + 1), 3)) / 2700 + 5
             ) / normalizacion
         ####################################################################
         # Entre las 19:00 y 19:30
@@ -373,7 +371,7 @@ def giveme_arrivals(tables, quantity_factor=4, plot=False, step=5, proportions=[
         ancho = 30
         if dt.timedelta() <= (x - now) < dt.timedelta(minutes=ancho):
             a = -0.2  # Cambio a pero los extremos quedan fijos
-            y0, y1 = 10, 20
+            y0, y1 = 15, 20
             b = (y1 - y0 - (a * (ancho ** 2))) / ancho
             xx = int(((x - now).total_seconds() / 60) + 1)
             return (a * pow(xx, 2) + b * xx + y0) / normalizacion

@@ -11,17 +11,21 @@ from itertools import combinations, groupby
 from prettytable import PrettyTable
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
+import sys
 
+def check_time_max(nows,time_max,time_step):
+    index = int((time_max.total_seconds()/60)/time_step)
+    if index > len(nows):
+        return nows
+    else:
+        return nows[:index]
 
-def calc_probs(now, now_max, queue, resto, step, timeit=False, debug=False, verbose=False, vverbose=False):
+def calc_probs(nows, time_max, queue, resto, timeit=False, debug=False, verbose=False, vverbose=False):
     if verbose: print("Calculating probabilities ...")
     if vverbose and queue.queue : print("    queue looks:")
     if vverbose and queue.queue : queue.print_queue()
-    nows = []
-    while now < now_max:
-        nows.append(now)
-        now = now + dt.timedelta(minutes=step)
-    nows = tuple(nows)
+    
+    nows = check_time_max(nows,time_max,resto.time_step)
 
     probs = np.zeros(shape=(len(queue.queue),len(nows)))
 
@@ -29,10 +33,10 @@ def calc_probs(now, now_max, queue, resto, step, timeit=False, debug=False, verb
         clients = queue.queue[0:i+1]
         if vverbose: print(f"    calculating probs for clients:")
         if vverbose: print_group(clients)
-        probs[i] = calc_prob(nows,step,clients,resto,timeit,debug,verbose,vverbose)
+        probs[i] = calc_prob(nows,clients,resto,timeit,debug,verbose,vverbose)
     return probs
 
-def calc_prob(nows,step,clients,resto,timeit=False,debug=False,verbose=False,vverbose=False):
+def calc_prob(nows,clients,resto,timeit=False,debug=False,verbose=False,vverbose=False):
     """ For a dermined group of clients and for all times
     """
 
@@ -50,14 +54,19 @@ def calc_prob(nows,step,clients,resto,timeit=False,debug=False,verbose=False,vve
                     if table.status =="empty":
                         p_branch *= 1
                     else:
-                        index = int(((now-table.t_in).total_seconds())/(60*step))
+                        index = int(((now-table.t_in).total_seconds())/(60*resto.time_step))
+                        if index >= len(resto.hists[table.hist_id]["hist_acum"]):
+                            index = -1
                         p_branch *= resto.hists[table.hist_id]["hist_acum"][index]
                 else:
                     if table.status=="empty":
                         p_branch *= 0.0
                     else:
-                        index = int(((now-table.t_in).total_seconds())/(60*step))
+                        index = int(((now-table.t_in).total_seconds())/(60*resto.time_step))
+                        if index >= len(resto.hists[table.hist_id]["hist_acum"]) :
+                            index = -1
                         p_branch *= (1-resto.hists[table.hist_id]["hist_acum"][index])
+                        
             p_total += p_branch
         probs[i] = p_total
     #probs = np.cumsum(probs)
@@ -71,63 +80,76 @@ def print_group(clients):
         x.add_row([i, client.name, client.cant, client.code])
     print(x)
 
-def plot_probs(nows,probs,queue,i,resto,verbose=False,save=False,show=False):
+def plot_probs(nows,time_max,probs,queue,i,resto,sits,verbose=False,save=False,show=False):
     if verbose: print("Plotting probs")
-    if verbose: print(f"    probs.shape: {probs.shape}")
     
+    nows = check_time_max(nows,time_max,resto.time_step)
+
+    gridsize = (4, 3)
+    fig = plt.figure(num=f"probs_{nows[0].strftime('%H:%M')}",figsize=(12,8),facecolor='papayawhip',edgecolor='black')
+    # ------------------------------------------------------------------------------------------
+    # Plot probs
+    # ------------------------------------------------------------------------------------------
+    ax_probs = plt.subplot2grid(gridsize, (0,0), colspan=2, rowspan=2, facecolor='antiquewhite')
+    myFmt = mdates.DateFormatter('%H:%M')
+    ax_probs.set_ylabel("Probability")
+    ax_probs.set_xlabel("Time [H:M]")
+    ax_probs.set_title(f"Probability for each client of getting sit at a determined hour. Now:{nows[0].strftime('%H:%M')}")
+    ax_probs.grid(True)
     if probs.shape[0] > 0:
-        gridsize = (4, 3)
-        fig = plt.figure(num=f"probs_{nows[0].strftime('%H:%M')}",figsize=(12,8),facecolor='papayawhip',edgecolor='black')
-        # ------------------------------------------------------------------------------------------
-        # Plot probs
-        # ------------------------------------------------------------------------------------------
-        ax_probs = plt.subplot2grid(gridsize, (0,0), colspan=2, rowspan=2, facecolor='antiquewhite')
-        myFmt = mdates.DateFormatter('%H:%M')
-        ax_probs.set_ylabel("Probabilidad acumulada")
-        ax_probs.set_xlabel("Tiempo [H:M]")
-        title = f"Probabilidad acumulada de liberación de al menos X mesas. Hora:{nows[0].strftime('%H:%M')}"
-        ax_probs.grid(True)
         for j in range(probs.shape[0]):
             ax_probs.plot(nows, probs[j,:], label = queue.queue[j].name , linewidth=3, color=queue.queue[j].color )
         ax_probs.legend(loc='best')
-        ax_probs.xaxis.set_major_formatter(myFmt)
-        plt.setp(ax_probs.get_xticklabels(), rotation=0, ha="right", rotation_mode="anchor")
-        # ------------------------------------------------------------------------------------------
-        # Plot Queue Table
-        # ------------------------------------------------------------------------------------------
-        ax_queue = plt.subplot2grid(gridsize, (0,2), colspan=1, rowspan=2,facecolor='antiquewhite')
-        cellText = []
+    else:
+        ax_probs.plot(nows,np.zeros(len(nows)),linewidth=1,color='black')
+    ax_probs.set_ylim(0,1)
+    ax_probs.xaxis.set_major_formatter(myFmt)
+    plt.setp(ax_probs.get_xticklabels(), rotation=0, ha="right", rotation_mode="anchor")
+    # ------------------------------------------------------------------------------------------
+    # Plot Queue Table
+    # ------------------------------------------------------------------------------------------
+    ax_queue = plt.subplot2grid(gridsize, (0,2), colspan=1, rowspan=2,facecolor='antiquewhite')
+    cellText = []
+    if probs.shape[0] > 0:
         for j,client in enumerate(queue.queue):
             cellText.append( [f"{(j+1):02d}",client.name,client.cant] )
-        colLabels = ("Order","Name","Quantity")
-        ax_queue.axis('tight')
-        ax_queue.axis('off')
-        ax_queue.table(cellText=cellText,colLabels=colLabels,loc='upper center',cellLoc='center')
-        ax_queue.set_title('Queue status')
-        # ------------------------------------------------------------------------------------------
-        # Plot Resto
-        # ------------------------------------------------------------------------------------------
-        ax_resto = plt.subplot2grid(gridsize, (3,0), colspan=3, rowspan=1,facecolor='antiquewhite')
-        #ax_resto.axis('off')
-        for j,table in enumerate(resto.tables):
-            x = 2.8*(j%5)
-            y = 5*int(j/5) + 0.3
-            if table.status=="Empty":
-                ax_resto.text(x=x,y=y,s=f'{table.name}',style='italic',bbox={'facecolor':'green','alpha':0.5})
+    else:
+        cellText.append( ["","",""])
+    colLabels = ("Order","Name","Quantity")
+    ax_queue.axis('tight')
+    ax_queue.axis('off')
+    ax_queue.table(cellText=cellText,colLabels=colLabels,loc='upper center',cellLoc='center')
+    ax_queue.set_title('Queue status')
+    # ------------------------------------------------------------------------------------------
+    # Plot Resto
+    # ------------------------------------------------------------------------------------------
+    ax_resto = plt.subplot2grid(gridsize, (3,0), colspan=3, rowspan=1,facecolor='antiquewhite')
+    #ax_resto.axis('off')
+    for j,table in enumerate(resto.tables):
+        x = 2.8*(j%5)
+        y = 5.5*int(j/5) + 0.3
+        if table.status=="empty":
+            ax_resto.text(x=x,y=y,s=f'{table.name}:\n--:--, {table.capacity}',style='italic',bbox={'facecolor':'green','alpha':0.5})
+        else:
+            if table in sits:
+                try: 
+                    ax_resto.text(x=x,y=y,s=f'{table.name}:\n{table.t_in.strftime("%H:%M")}, {table.capacity}\n{table.client.name}', style='italic', bbox={'facecolor':'yellow','alpha':0.5})
+                except:
+                    ax_resto.text(x=x,y=y,s=f'{table.name}:\n{table.t_in.strftime("%H:%M")}, {table.capacity}', style='italic', bbox={'facecolor':'yellow','alpha':0.5})
             else:
                 try: 
                     ax_resto.text(x=x,y=y,s=f'{table.name}:\n{table.t_in.strftime("%H:%M")}, {table.capacity}\n{table.client.name}', style='italic', bbox={'facecolor':'red','alpha':0.5})
                 except:
                     ax_resto.text(x=x,y=y,s=f'{table.name}:\n{table.t_in.strftime("%H:%M")}, {table.capacity}', style='italic', bbox={'facecolor':'red','alpha':0.5})
 
-        ax_resto.axis([-0.5, 14, -1, 10])
-        ax_resto.tick_params( axis='x', which='both', bottom=False, top=False, labelbottom=False)
-        ax_resto.tick_params( axis='y', which='both', left=False, right=False, labelleft=False)
-        ax_resto.set_title('Resto status')
+    ax_resto.axis([-0.5, 14, -1, 10])
+    ax_resto.tick_params( axis='x', which='both', bottom=False, top=False, labelbottom=False)
+    ax_resto.tick_params( axis='y', which='both', left=False, right=False, labelleft=False)
+    ax_resto.set_title('Resto status')
 
-        if save: fig.savefig(fname=f"images/frame_{i:02d}")
-        if show: plt.show()
-        plt.close(fig)
+    if save: fig.savefig(fname=f"images/frame_{i:02d}")
+    if show: plt.show()
+    plt.close(fig)
 
 class Tree:
     """ Class used to calculate all the possible forms of arraging groups of clients in groups of Tables.

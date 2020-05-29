@@ -28,7 +28,7 @@ def timeit(func):
                 ts = time.time()
                 result = func(*args, **kwargs)
                 te = time.time()
-                print(f"({func.__name__} finished in {te - ts:0.6f}s)")
+                print(f"    ({func.__name__} finished in {te - ts:0.6f}s)")
                 return result
         result = func(*args, **kwargs)
         return result
