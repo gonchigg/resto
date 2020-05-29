@@ -20,7 +20,7 @@ def check_time_max(nows,time_max,time_step):
     else:
         return nows[:index]
 
-def calc_probs(nows, time_max, queue, resto, timeit=False, debug=False, verbose=False, vverbose=False):
+def calc_probs(nows, queue, resto, time_max, timeit=False, debug=False, verbose=False, vverbose=False):
     if verbose: print("Calculating probabilities ...")
     if vverbose and queue.queue : print("    queue looks:")
     if vverbose and queue.queue : queue.print_queue()
@@ -80,17 +80,17 @@ def print_group(clients):
         x.add_row([i, client.name, client.cant, client.code])
     print(x)
 
-def plot_probs(nows,time_max,probs,queue,i,resto,sits,verbose=False,save=False,show=False):
+def plot_probs(nows,probs,queue,i,resto,sits,time_max,verbose=False,save=False,show=False):
     if verbose: print("Plotting probs")
     
     nows = check_time_max(nows,time_max,resto.time_step)
 
-    gridsize = (4, 3)
-    fig = plt.figure(num=f"probs_{nows[0].strftime('%H:%M')}",figsize=(12,8),facecolor='papayawhip',edgecolor='black')
+    gridsize = (2, 3)
+    fig = plt.figure(num=f"probs_{nows[0].strftime('%H:%M')}",figsize=(16,9),facecolor='papayawhip',edgecolor='black')
     # ------------------------------------------------------------------------------------------
     # Plot probs
     # ------------------------------------------------------------------------------------------
-    ax_probs = plt.subplot2grid(gridsize, (0,0), colspan=2, rowspan=2, facecolor='antiquewhite')
+    ax_probs = plt.subplot2grid(gridsize, (0,0), colspan=2, rowspan=1, facecolor='antiquewhite')
     myFmt = mdates.DateFormatter('%H:%M')
     ax_probs.set_ylabel("Probability")
     ax_probs.set_xlabel("Time [H:M]")
@@ -108,7 +108,7 @@ def plot_probs(nows,time_max,probs,queue,i,resto,sits,verbose=False,save=False,s
     # ------------------------------------------------------------------------------------------
     # Plot Queue Table
     # ------------------------------------------------------------------------------------------
-    ax_queue = plt.subplot2grid(gridsize, (0,2), colspan=1, rowspan=2,facecolor='antiquewhite')
+    ax_queue = plt.subplot2grid(gridsize, (0,2), colspan=1, rowspan=1,facecolor='antiquewhite')
     cellText = []
     if probs.shape[0] > 0:
         for j,client in enumerate(queue.queue):
@@ -123,11 +123,11 @@ def plot_probs(nows,time_max,probs,queue,i,resto,sits,verbose=False,save=False,s
     # ------------------------------------------------------------------------------------------
     # Plot Resto
     # ------------------------------------------------------------------------------------------
-    ax_resto = plt.subplot2grid(gridsize, (3,0), colspan=3, rowspan=1,facecolor='antiquewhite')
+    ax_resto = plt.subplot2grid(gridsize, (1,0), colspan=3, rowspan=1,facecolor='antiquewhite')
     #ax_resto.axis('off')
     for j,table in enumerate(resto.tables):
         x = 2.8*(j%5)
-        y = 5.5*int(j/5) + 0.3
+        y = 3*int(j/5) + 0.3
         if table.status=="empty":
             ax_resto.text(x=x,y=y,s=f'{table.name}:\n--:--, {table.capacity}',style='italic',bbox={'facecolor':'green','alpha':0.5})
         else:
@@ -142,7 +142,7 @@ def plot_probs(nows,time_max,probs,queue,i,resto,sits,verbose=False,save=False,s
                 except:
                     ax_resto.text(x=x,y=y,s=f'{table.name}:\n{table.t_in.strftime("%H:%M")}, {table.capacity}', style='italic', bbox={'facecolor':'red','alpha':0.5})
 
-    ax_resto.axis([-0.5, 14, -1, 10])
+    ax_resto.axis([-0.5, 14, -1, 8])
     ax_resto.tick_params( axis='x', which='both', bottom=False, top=False, labelbottom=False)
     ax_resto.tick_params( axis='y', which='both', left=False, right=False, labelleft=False)
     ax_resto.set_title('Resto status')
@@ -234,12 +234,13 @@ class Tree:
 
             branches = _get_branches(node)  # Recupero las branches del tree
             if branches:
+                branches = tuple(filter(lambda x: x!=None, branches))
                 total = sum(node.cants.values())  # Cantidad de clientes
-                branches = list(filter(lambda x: len(x) >= total, branches))  # Elimina las branches que tienen menos mesas que la cantidad de clientes
+                branches = tuple(filter(lambda x: len(x) >= total, branches))  # Elimina las branches que tienen menos mesas que la cantidad de clientes
                 branches = [ sorted(branche, key=lambda table: table.name) for branche in branches] # Las ordeno por placer visual
                 branches = sorted(branches, key=_fname)   # Las ordeno por placer visual
                 group_obj = groupby(branches, key=_gname) # Elimina duplicados
-                branches = [list(value)[0] for key, value in group_obj]  # Elimina duplicados
+                branches = [tuple(value)[0] for key, value in group_obj]  # Elimina duplicados
                 return branches
             else:
                 return []

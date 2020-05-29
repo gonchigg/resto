@@ -186,7 +186,7 @@ class Resto:
                     table.status = "empty"
         return departures
 
-    def update_sits(self, queue, now, verbose=False):
+    def update_sits(self, now, queue, verbose=False):
         if verbose: print("Updating sits ...")
         empty_tables = list(filter(lambda table: table.status == "empty", self.tables))
 
