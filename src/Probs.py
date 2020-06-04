@@ -3,6 +3,9 @@
     =====
 
     Provides the classes and methods used to calculate the probabilities of a client getting sit in a determined period of time
+    There are not closed-form expressions for calculating this case probabilities. The best way of doing it is listing all the possibles ways of a person of getting sit.
+    Once all the cases are listed then, the probability of each case is calculated, and the total probability is the sum of the cases.
+
 """
 import MyDecorators as Dec
 import datetime as dt
@@ -11,24 +14,54 @@ from itertools import combinations, groupby
 from prettytable import PrettyTable
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-import sys
 
 def check_time_max(nows,time_max,time_step):
+    """
+        Auxiliar function for checking indexes stuff
+    """
     index = int((time_max.total_seconds()/60)/time_step)
     if index > len(nows):
         return nows
     else:
         return nows[:index]
 
-def calc_probs(nows, queue, resto, time_max, timeit=False, debug=False, verbose=False, vverbose=False):
+def calc_probs(nows, queue, resto, time_max = dt.timedelta(hours=1,minutes=30), timeit=False, debug=False, verbose=False, vverbose=False):
+    """ calculates the probabilities for all clients in the queue.
+
+        Parameters
+        ----------
+            nows: list of datetime.datetime objects. Non-optional.
+                Times where probability should be calculated.
+            queue: Queue object. Non-optional.
+            resto: Resto object. Non-optional.
+            time_max: datetime.timedelta object. Optional. Default 1:30 hours
+                Used to limit the span of time on which calculate probabilities, in case nows list is too large.
+
+        Return
+        ------
+            probs: numpy array of (quantity of clients x length of nows).
+                Returns the probability for each client of the queue of being sit at the correspondent time with nows vector.
+    """
+    def print_group(clients):
+        """ Auxiliar function, used for printing pretty a group of clients
+        """
+        x = PrettyTable()
+        x.title = "Group"
+        x.field_names = ["numb", "name", "cant", "code"]
+        for i, client in enumerate(clients):
+            x.add_row([i, client.name, client.cant, client.code])
+        print(x)
+
     if verbose: print("Calculating probabilities ...")
     if vverbose and queue.queue : print("    queue looks:")
     if vverbose and queue.queue : queue.print_queue()
-    
+
+    # we don't want to calculate probabilities further away than time_max, for default 1:30 hours
     nows = check_time_max(nows,time_max,resto.time_step)
-
+    # ------------------------------------------------------------------------------------------
+    # Calculate probabilities for each client in the queue
+    # ------------------------------------------------------------------------------------------
     probs = np.zeros(shape=(len(queue.queue),len(nows)))
-
     for i in range(len(queue.queue)):
         clients = queue.queue[0:i+1]
         if vverbose: print(f"    calculating probs for clients:")
@@ -37,50 +70,73 @@ def calc_probs(nows, queue, resto, time_max, timeit=False, debug=False, verbose=
     return probs
 
 def calc_prob(nows,clients,resto,timeit=False,debug=False,verbose=False,vverbose=False):
-    """ For a dermined group of clients and for all times
     """
-
+        For a dermined group of clients and for all times"""
+    # ------------------------------------------------------------------------------------------
+    # List all possible ways of sitting the group of clients
+    # ------------------------------------------------------------------------------------------
     tree = Tree(clients,resto.tables,timeit,debug)
     if vverbose: print("    Posible ways of sitting")
     if vverbose: tree.print_branches()
-
-    probs = np.zeros(len(nows))
+    # ------------------------------------------------------------------------------------------
+    # Calculate probabilities for each time
+    # ------------------------------------------------------------------------------------------
+    probs = np.zeros(len(nows)) # List of probability for each time
     for i,now in enumerate(nows):
+        # ------------------------------------------------------------------------------------------
+        # total probability is the sum of the probability of each branch
+        # ------------------------------------------------------------------------------------------
         p_total = 0.0
         for j,branch in enumerate(tree.branches):
             p_branch = 1.0
+            # ---------------------------------------------------------------------------------------------------------------
+            # probability of the branch is the multiplication of the probability of all tables of being free or not as a sum.
+            # ---------------------------------------------------------------------------------------------------------------
             for table in tree.tables_of_interest:
+                # if the table is in the branch then in this branch it is calculated the probability of it of being released.
+                # if it is not it is calculated the probability of it of not being released.
                 if table in branch:
+                    # if the table is "empty" then the probability of being released if 1 because it is alredy released now.
                     if table.status =="empty":
                         p_branch *= 1
                     else:
+                        # if the table is not empty, then the probability of being released is calculated out of the normalized histogram of the table.
                         index = int(((now-table.t_in).total_seconds())/(60*resto.time_step))
                         if index >= len(resto.hists[table.hist_id]["hist_acum"]):
                             index = -1
                         p_branch *= resto.hists[table.hist_id]["hist_acum"][index]
                 else:
+                    # if table is not in the branch then the probability of not being in released is calculated.
+                    # if it is "empty" then the probability of not being released is 0.0 since it is alredy released.
                     if table.status=="empty":
                         p_branch *= 0.0
                     else:
+                        # if table is not empty then the probability is (1-histogram[index])
                         index = int(((now-table.t_in).total_seconds())/(60*resto.time_step))
                         if index >= len(resto.hists[table.hist_id]["hist_acum"]) :
                             index = -1
                         p_branch *= (1-resto.hists[table.hist_id]["hist_acum"][index])
-                        
             p_total += p_branch
         probs[i] = p_total
-    #probs = np.cumsum(probs)
     return probs
 
-def print_group(clients):
-    x = PrettyTable()
-    x.title = "Group"
-    x.field_names = ["numb", "name", "cant", "code"]
-    for i, client in enumerate(clients):
-        x.add_row([i, client.name, client.cant, client.code])
-    print(x)
+def plot_probs(nows,probs,queue,resto,sits,time_max=dt.timedelta(hours=1,minutes=30),i=0,verbose=False,save=False,show=False):
+    """ Used for printing probabilities, resto status and queue status.
 
-def plot_probs(nows,probs,queue,i,resto,sits,time_max,verbose=False,save=False,show=False):
+        Parameters:
+            nows: List of datetime.datetime objects. Non-optional.
+                Correspondent times to probabilities calculated.
+            probs: numpy.array object. Non-optional.
+                Probabilities calculated by calc_probs()
+            queue: Queue object. Non-optional.
+            resto: Resto object. Non-optional.
+            sits: List of Table objects. Non-optional.
+                Used for plotting the tables that have departured.
+            time_max: datetime.timedelta object. Optinal, default 1:30 hours.
+                Used for limiting nows vector.
+            i: int. Optional, default 0.
+                Used for saving images ordered. 
+    """
     if verbose: print("Plotting probs")
     
     nows = check_time_max(nows,time_max,resto.time_step)
@@ -162,9 +218,32 @@ class Tree:
             * print_branches()
     """
     def __init__(self, clients, tables, timeit=False, debug=False):
+        """ initilization
+
+            Parameters
+            ----------
+                clients: List of Client objects. Non-optional.
+                    Clients to be sited in tables.
+                tables: List of Table objects. Non-optional.
+                    Tables on wich clients can be arranged.
+        """    
         class _Node:
             """ Each Node of the Tree """
             def __init__(self, cants, comb_tables, tables, level):
+                """ initialization
+                    Parameters
+                    ----------
+                        cants: dictionary. Non-optional.
+                            Used for building of tree. Used for passing information of quantity of clients grouped by quantity of sits needed.
+                        children: List of Nodes. Non-optional.
+                            Used for building of Tree. 
+                        comb_tables: Tuple of Table objects. Non-optional.
+                            True information of the Node.
+                        tables: List of tables. Non-optional.
+                            Used for building of Tree. List of remaining free tables.
+                        level: int. Non-optional.
+                            References the level inside the Tree.                
+                """
                 self.cants = cants
                 self.children = []
                 self.comb_tables = comb_tables
@@ -172,6 +251,7 @@ class Tree:
                 self.level = level
 
         def all_combinations(tables):
+            """ Auxiliar function: get all possible combinations of a group of tables, included None"""
             combs = []
             for i in range(len(tables)+1):
                 combs.extend( list(combinations(tables,i)))
@@ -179,20 +259,25 @@ class Tree:
 
         def _build_tree(node):
             if not node.cants:
-                # When no more cants it should return all the possible combinations of tables that remain
+                # When no more cants there are not more clients to be arranged.
+                # It should return all the possible combinations of tables that remain
                 tuples = all_combinations(node.tables)
                 for _tuple in tuples:
+                    # New combinations are stored in new nodes.
                     new_node = _Node(tables=None,comb_tables=_tuple,cants=None,level=node.level + 1)
                     node.children.append(new_node)
                 return
             else:
+                # If there are still clients to be arranged
                 cants_aux = node.cants.copy()
-                m = next(iter(cants_aux))  # De cuanto son las tables
-                n = cants_aux.pop(m)  # Cuantas de esas tables necesito
+                m = next(iter(cants_aux))  # quantity of sits needed by cliets in this group
+                n = cants_aux.pop(m)       # how much clients are in this group
+                # tables that matter when calculating important combinations
                 tables_of_interest = filter(lambda x: int(m) in x.capacity, node.tables)
-                for tupla in combinations(tables_of_interest, n):  # Iterar sobre todas las combinaciones posibles de tables
-                    tables_aux = tuple(filter(lambda table: table not in tupla, node.tables) )
-                    new_node = _Node(tables=tables_aux,comb_tables=tupla,cants=cants_aux,level=node.level + 1)
+                # iterate over all possible combinations of tables_of_interest grouped by n.
+                for _tuple in combinations(tables_of_interest, n):
+                    tables_aux = tuple(filter(lambda table: table not in _tuple, node.tables) )
+                    new_node = _Node(tables=tables_aux,comb_tables=_tuple,cants=cants_aux,level=node.level + 1)
                     node.children.append(new_node)
                     _build_tree(node=new_node)
                 return
@@ -200,12 +285,15 @@ class Tree:
         @Dec.debug
         @Dec.timeit
         def build_tree(node, timeit=False, debug=True):
+            """ Wrapper used for timing evoiding recursion"""
             _build_tree(node)
 
         @Dec.debug
         @Dec.timeit
         def get_branches(node, timeit=False, debug=True):
+            """ get branches of tree"""
             def _get_branches(node):
+                """ really get branches of tree"""
                 if not node.children:
                     return [node.comb_tables]
                 else:
@@ -232,15 +320,20 @@ class Tree:
                     out += x[i].name[-2:]
                 return out
 
-            branches = _get_branches(node)  # Recupero las branches del tree
+            # really get branches of tree
+            branches = _get_branches(node)
             if branches:
+                # eliminate branches that are empty
                 branches = tuple(filter(lambda x: x!=None, branches))
-                total = sum(node.cants.values())  # Cantidad de clientes
-                branches = tuple(filter(lambda x: len(x) >= total, branches))  # Elimina las branches que tienen menos mesas que la cantidad de clientes
-                branches = [ sorted(branche, key=lambda table: table.name) for branche in branches] # Las ordeno por placer visual
-                branches = sorted(branches, key=_fname)   # Las ordeno por placer visual
-                group_obj = groupby(branches, key=_gname) # Elimina duplicados
-                branches = [tuple(value)[0] for key, value in group_obj]  # Elimina duplicados
+                # eliminate branches that are not long enough
+                total = sum(node.cants.values())  # Total quantity of clients in list
+                branches = tuple(filter(lambda x: len(x) >= total, branches))
+                # order branches
+                branches = [ sorted(branche, key=lambda table: table.name) for branche in branches]
+                branches = sorted(branches, key=_fname)
+                # eliminate duplicates
+                group_obj = groupby(branches, key=_gname)
+                branches = [tuple(value)[0] for key, value in group_obj]
                 return branches
             else:
                 return []
@@ -252,16 +345,19 @@ class Tree:
             except:
                 cants[f"{client.cant}"] = 1
 
+        # get tables of interest
         def check_cond(table,cants):
             for cant in table.capacity:
                 if cant in ([int(key) for key in cants.keys()]):
                     return True
             return False
-
         self.tables_of_interest = [ table  for table in tables if check_cond(table,cants) ]
         
+        # create initial Node
         node = _Node(cants=cants, comb_tables=None, tables=self.tables_of_interest, level=0)
+        # Build Tree
         build_tree(node, timeit=timeit, debug=debug)
+        # get branches and store them in self.branches
         self.branches = get_branches(node, timeit=timeit, debug=debug)
 
     @Dec.debug

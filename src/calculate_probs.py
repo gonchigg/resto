@@ -1,16 +1,19 @@
-import Resto
-import Probs
+import Resto # Module used to handle the behaviour of the resto and queue
+import Probs # Module used to calculate and plot probabilities
 import datetime as dt
 
 # ------------------------------------------------------------------------------------------
 # Load Resto and Queue initial values
 # ------------------------------------------------------------------------------------------
-resto = Resto.load_resto(file="input_jsons/empty_resto.json", smooth_hist=True, cant_tables=15)
+resto = Resto.load_resto(file="input_jsons/empty_resto.json", smooth_hist=True, cant_tables=15) # Also loads the histograms for the tables
 queue = Resto.load_queue(file="input_jsons/empty_queue.json", cant_clients=0)
 # ------------------------------------------------------------------------------------------
 # Pre-calculate arrivals and departures behaviour
 # ------------------------------------------------------------------------------------------
+""" Arrivals will have a probabilistic behaviour given by a custom function defined inside giveme_arrivals()
+    The amount of arrivals can be modified by quantity_factor but not it's time distribution """
 queue.arrivals_register = Resto.giveme_arrivals(resto.tables, quantity_factor=4, plot=False, step=15) #quantity factor 4 or 5
+# Departures will have a probabilistic behaviour given by gammas distributions with the same parameters set to the gamma distributions that build the histograms of the tables
 resto.departures = Resto.giveme_departures(resto)
 # ------------------------------------------------------------------------------------------
 # Optional: print Resto and Queue at initial time
@@ -39,7 +42,8 @@ for i,now in enumerate(nows):
     resto.update_departures(now, verbose=False)
     # Update Queue and Resto state: see if there is free space for people in Queue and sit them if possible.
     sits = resto.update_sits(now, queue, verbose=False)
-    # Calculate probabilities of clients in queue.
+    """ Calculate probabilities of clients in queue.
+        (probabilities are calculated using the histogram of behaviour of the tables and the state of the current resto)"""
     probs = Probs.calc_probs(nows[i:],queue,resto,time_max=dt.timedelta(hours=1,minutes=20),timeit=True,verbose=False)
     # Plot probabilities, state of Queue and Resto.
-    Probs.plot_probs(nows[i:],probs,queue,i,resto,sits,time_max=dt.timedelta(hours=1,minutes=20),verbose=False,save=True,show=False)
+    Probs.plot_probs(nows[i:],probs,queue,resto,sits,time_max=dt.timedelta(hours=1,minutes=20),i=i,verbose=False,save=True,show=False)
