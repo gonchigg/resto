@@ -37,17 +37,17 @@ class Table:
 
     Status = ("taken", "empty", "inactive")  # All possiblle states of a Table
 
-    def __init__(self, name, capacity, t_in, hist_id, status="empty", client=None):
+    def __init__(self, name, capacity, t_in, t_out, hist_id, status="empty", client=None):
         """Initialize the Class Table:"""
         self.name = name
         self.client = client
         self.capacity = capacity
         self.t_in = t_in
+        self.t_out = t_out
         if status not in self.Status:
             raise ValueError("%s is not a valid title." % status)
         self.status = status
         self.hist_id = hist_id
-        self.t_out = None
 
 class Client:
     """ Class used to simulate and handle all the data relationed to each Client.
@@ -81,12 +81,12 @@ class Queue:
         self.colors =  ['crimson','darkgoldenrod','hotpink','teal','olivedrab','peru','violet','forestgreen','chocolate','firebrick','lightblue','khaki','salmon','orchid','springgreen','maroon','fuchsia','mediumorchid','turquoise','crimson','darkslategrey']
         self.counter = 0
 
-    def add_client(self, cant, name="", t_arrival=dt.datetime.today()):
+    def add_client(self, cant, name=None, t_arrival=dt.datetime.today()):
         codes = list(filter(lambda client: client.code, self.queue))
         code = np.random.randint(low=0, high=9999)
         while code in codes:
             code = np.random.randint(low=0, high=9999)
-        if name == "":
+        if not name:
             name = f"Juan_{code:04d}"
         client = Client(name=name, code=code, cant=cant, color=self.colors[( self.counter % (len(self.colors)))], t_arrival=t_arrival)
         self.counter += 1
@@ -136,7 +136,7 @@ class Resto:
             hist = scipy.ndimage.gaussian_filter1d(input=hist,sigma=1,mode='constant')
         self.hists[f"{hist_id}"] = { "mean": mean, "deviation": deviation, "hist": hist / sum(hist), "hist_acum": np.cumsum(hist / sum(hist)) }
 
-    def add_table(self, name="", capacity=[], t_in=dt.datetime.today(), status="empty", hist_id="hist_01", client=None):
+    def add_table(self, name="", capacity=[], t_in=dt.datetime.today(),t_out=dt.datetime.today, status="empty", hist_id="hist_01", client=None):
         if name == "":
             name = f"table_{len(self.tables+1):02d}"
         self.tables.append(
@@ -144,6 +144,7 @@ class Resto:
                 name=name,
                 capacity=capacity,
                 t_in=t_in,
+                t_out=t_out,
                 status=status,
                 hist_id=hist_id,
                 client=client,
@@ -157,21 +158,12 @@ class Resto:
         for i, table in enumerate(self.tables):
             if table.status == "taken":
                 if ((now - table.t_in).total_seconds()) / 60 > self.departures[i][0]:
-                    t_out = table.t_in + dt.timedelta(minutes=self.departures[i][0])
-                    table.t_out = t_out
                     if verbose:
                         print(f"    Table:{table.name} has stand up, with client:{table.client.name} at:{t_out}")
-                    departures.append(
-                        (
-                            table.client.cant,
-                            table.client.t_arrival,
-                            table.t_in,
-                            t_out,
-                            table.t_in - table.client.t_arrival,
-                            t_out - table.t_in,
-                            t_out - table.client.t_arrival,
-                        )
-                    )
+                    table.t_out = table.t_in + dt.timedelta(minutes=self.departures[i][0])
+                    
+                    departures.append( (table.client.cant, table.client.t_arrival, table.t_in, table.t_out, table.t_in - table.client.t_arrival, table.t_out - table.t_in, table.t_out - table.client.t_arrival) )
+                    
                     (self.departures[i]).pop(0)
                     table.status = "empty"
         return departures
@@ -186,14 +178,11 @@ class Resto:
                 new_queue = []  # New Queue wont have the Clients that have sit
                 for i, client in enumerate( queue.queue ):  # For each client see if it can sit: going in order of priority
                     # Get tables where the client can sit
-                    valid_tables = list(filter(lambda table: (table.status == "empty") and (client.cant in table.capacity), empty_tables))
+                    valid_tables = list(filter(lambda table: (client.cant in table.capacity), empty_tables))
                     if valid_tables:  # if there are valid tables for the client
                         table = random.choice(valid_tables)  # Choose one randomly
-                        if table.t_out:
-                            if table.t_out > client.t_arrival:
-                                t_in = table.t_out + dt.timedelta(minutes=1)
-                            else:
-                                t_in = client.t_arrival + dt.timedelta(minutes=1)
+                        if table.t_out > client.t_arrival:
+                            t_in = table.t_out + dt.timedelta(minutes=1)
                         else:
                             t_in = client.t_arrival + dt.timedelta(minutes=1)
                         table.status, table.t_in, table.client = ("taken",t_in,client)
@@ -203,6 +192,9 @@ class Resto:
                         new_queue.append(client)
                         if verbose: print(f"    No tables available (of:{client.cant}) for client:{client.name}")
                 queue.queue = new_queue
+            else:
+                if verbose:
+                    print("    No clients in Queue")
         else:
             if verbose:
                 print("    No empty Tables")
@@ -269,6 +261,7 @@ def load_resto(file="input_jsons/resto.json",smooth_hist=True, cant_tables=20):
             capacity=table["capacity"],
             status=table["status"],
             t_in=time,
+            t_out=now,
             hist_id=table["hist_id"],
             client=None,
         )
@@ -465,10 +458,7 @@ def giveme_departures(resto):
     """
     departures = []
     for table in resto.tables:
-        mean, deviation = (
-            resto.hists[f"{table.hist_id}"]["mean"],
-            resto.hists[f"{table.hist_id}"]["deviation"],
-        )
+        mean, deviation = resto.hists[f"{table.hist_id}"]["mean"], resto.hists[f"{table.hist_id}"]["deviation"]
         shape, scale = Aux.gamma_parameters(mean, deviation)
         departures.append(list(np.random.gamma(shape, scale, 20)))
     return departures

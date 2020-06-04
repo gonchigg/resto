@@ -80,14 +80,12 @@ for i in range(3):
 ax.legend(lines,legends,loc='best',fontsize='small',shadow=True,facecolor='palegoldenrod',edgecolor=None)
 plt.grid("on")
 
-# Plot histograms of time of arrival, time of sit and living time
+
 Aux.plot_datetime_histogram(times=[ times[1] for times in client_times_register ], step=5, normalizer=n, title='Arrival time',show=False)
 Aux.plot_datetime_histogram(times=[ times[2] for times in client_times_register ], step=5, normalizer=n, title='Sit time',show=False)
 Aux.plot_datetime_histogram(times=[ times[3] for times in client_times_register ], step=5, normalizer=n, title='Living time',show=False)
-#Aux.plot_timedelta_histogram(times=[ times[4] for times in client_times_register ], step=5, normalizer=1, title='Waiting time',show=True)
-#Aux.plot_timedelta_histogram(times=[ times[5] for times in client_times_register ], step=5, normalizer=1, title='Sit time',show=False)
-#Aux.plot_timedelta_histogram(times=[ times[6] for times in client_times_register ], step=5, normalizer=1, title='Total time',show=False)
-
-#print( [times[4] for times in client_times_register ][1:10] )
-
+aux =  list(filter(lambda t: t>dt.timedelta(minutes=1.1), [ times[4] for times in client_times_register ]))
+Aux.plot_timedelta_histogram(times= aux, step=5, normalizer=n, title='Waiting time',show=False)
+Aux.plot_timedelta_histogram(times=[ times[5] for times in client_times_register ], step=5, normalizer=1, title='Total Sit time',show=False)
+Aux.plot_timedelta_histogram(times=[ times[6] for times in client_times_register ], step=5, normalizer=1, title='Total time',show=False)
 plt.show()

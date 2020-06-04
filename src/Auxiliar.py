@@ -49,17 +49,30 @@ def plot_datetime_histogram(times, step, strftime_formatter="%H:%M", density=Fal
 
 def plot_timedelta_histogram(times, step, strftime_formatter="%H:%M", density=False, normalizer=1,title="",show=True ):
 
-    times.sort()
-    bins = np.arange(start=(times[0]).total_seconds() - (60.0*(step/2)),stop=(times[-1]).total_seconds() + (60.0*(step/2)),step=step*60.0)
 
-    counts, _ = np.histogram([time.total_seconds() for time in times], bins=bins, density=density)
+    def lower_p(a, p):
+        return p * math.floor(a / p)
+
+    times.sort()
+    t0 = dt.datetime.today()
+    t0 = t0.replace(hour=0,minute=0,second=0,microsecond=0)
+    times = [ t0 + t for t in times]
+    t_min, t_max = times[0], times[-1]
+    r1, r2 = lower_p(t_min.minute, step), lower_p(t_max.minute, step)
+    t_min, t_max = (t_min.replace(minute=r1, second=0, microsecond=0), t_max.replace(minute=r2, second=0, microsecond=0) + dt.timedelta(minutes=step),)
+
+    t_min, t_max = t_min.timestamp(), t_max.timestamp()
+
+    times = list(map(lambda date: date.timestamp(), times))
+    bins = np.arange(start=t_min, stop=t_max, step=(step * 60))
+    counts, _ = np.histogram(times, bins=bins, density=density)
     counts = counts/normalizer
 
     fig, ax = plt.subplots(figsize=(10, 6.5))
-    ax.bar( (bins[:-1] + (60*step/2) ), counts, width = step * 60, color="salmon", edgecolor="black", linewidth="2")
-    
+    ax.bar( (bins[:-1] + (60 * step) / 2), counts, step * 60, color="salmon", edgecolor="black", linewidth="2")
     ax.set_xticks(bins)
-    _xticks = [ str(time) for time in times]
+    _xticks = [dt.datetime.fromtimestamp(stamp) for stamp in bins]
+    _xticks = [date.strftime(strftime_formatter) for date in _xticks]
     ax.set_xticklabels(_xticks)
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right", rotation_mode="anchor")
     ax.set_title(title)
