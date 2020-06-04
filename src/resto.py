@@ -47,6 +47,7 @@ class Table:
             raise ValueError("%s is not a valid title." % status)
         self.status = status
         self.hist_id = hist_id
+        self.t_out = None
 
 class Client:
     """ Class used to simulate and handle all the data relationed to each Client.
@@ -95,29 +96,19 @@ class Queue:
     def update_arrivals(self, now, verbose=False):
         if verbose:
             print(f"Updating arrivals ...")
-        if self.arrivals_register != []:
-            if self.arrivals_register[0][0] < now:
-                cond = True
-            else:
-                cond = False
-        else:
-            cond = False
+        
+        def check_cond(arrivals_register,now):
+            if arrivals_register != []:
+                if arrivals_register[0][0] < now:
+                    return True
+            return False
+
         arrivals = []
-        while cond:
+        while check_cond(self.arrivals_register,now):
             arrival = self.arrivals_register.pop(0)
-            if verbose:
-                print(
-                    f"    Client arrived at:{arrival[0].strftime('%H:%M:%S')}, they are:{arrival[1]}"
-                )
+            if verbose: print(f"    Client arrived at:{arrival[0].strftime('%H:%M:%S')}, they are:{arrival[1]}")
             client = self.add_client(cant=arrival[1], t_arrival=arrival[0])
             arrivals.append(client)
-            if self.arrivals_register != []:
-                if self.arrivals_register[0][0] < now:
-                    cond = True
-                else:
-                    cond = False
-            else:
-                cond = False
 
     def get_state(self):
         quantities = np.array([0, 0, 0])
@@ -167,10 +158,9 @@ class Resto:
             if table.status == "taken":
                 if ((now - table.t_in).total_seconds()) / 60 > self.departures[i][0]:
                     t_out = table.t_in + dt.timedelta(minutes=self.departures[i][0])
+                    table.t_out = t_out
                     if verbose:
-                        print(
-                            f"    Table:{table.name} has stand up, with client:{table.client.name} at:{t_out}"
-                        )
+                        print(f"    Table:{table.name} has stand up, with client:{table.client.name} at:{t_out}")
                     departures.append(
                         (
                             table.client.cant,
@@ -199,7 +189,14 @@ class Resto:
                     valid_tables = list(filter(lambda table: (table.status == "empty") and (client.cant in table.capacity), empty_tables))
                     if valid_tables:  # if there are valid tables for the client
                         table = random.choice(valid_tables)  # Choose one randomly
-                        table.status, table.t_in, table.client = ("taken",now,client)  # Update the status of the table
+                        if table.t_out:
+                            if table.t_out > client.t_arrival:
+                                t_in = table.t_out + dt.timedelta(minutes=1)
+                            else:
+                                t_in = client.t_arrival + dt.timedelta(minutes=1)
+                        else:
+                            t_in = client.t_arrival + dt.timedelta(minutes=1)
+                        table.status, table.t_in, table.client = ("taken",t_in,client)
                         sits.append(table)
                         if verbose: print(f"    Client:{client.name} sit down in table:{table.name}")
                     else:  # If the Client doesn´t sit it will be in the new_queue if not he will not be

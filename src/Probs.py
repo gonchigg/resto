@@ -5,7 +5,6 @@
     Provides the classes and methods used to calculate the probabilities of a client getting sit in a determined period of time
     There are not closed-form expressions for calculating this case probabilities. The best way of doing it is listing all the possibles ways of a person of getting sit.
     Once all the cases are listed then, the probability of each case is calculated, and the total probability is the sum of the cases.
-
 """
 import MyDecorators as Dec
 import datetime as dt
@@ -15,7 +14,7 @@ from prettytable import PrettyTable
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
-def check_time_max(nows,time_max,time_step):
+def _check_time_max(nows,time_max,time_step):
     """
         Auxiliar function for checking indexes stuff
     """
@@ -57,7 +56,7 @@ def calc_probs(nows, queue, resto, time_max = dt.timedelta(hours=1,minutes=30), 
     if vverbose and queue.queue : queue.print_queue()
 
     # we don't want to calculate probabilities further away than time_max, for default 1:30 hours
-    nows = check_time_max(nows,time_max,resto.time_step)
+    nows = _check_time_max(nows,time_max,resto.time_step)
     # ------------------------------------------------------------------------------------------
     # Calculate probabilities for each client in the queue
     # ------------------------------------------------------------------------------------------
@@ -139,7 +138,7 @@ def plot_probs(nows,probs,queue,resto,sits,time_max=dt.timedelta(hours=1,minutes
     """
     if verbose: print("Plotting probs")
     
-    nows = check_time_max(nows,time_max,resto.time_step)
+    nows = _check_time_max(nows,time_max,resto.time_step)
 
     gridsize = (2, 3)
     fig = plt.figure(num=f"probs_{nows[0].strftime('%H:%M')}",figsize=(16,9),facecolor='papayawhip',edgecolor='black')
@@ -378,3 +377,9 @@ class Tree:
                     row.append("")
             x.add_row(row)
         print(x)
+
+############################################################################################
+# Main
+############################################################################################
+if __name__ == "__main__":
+    pass

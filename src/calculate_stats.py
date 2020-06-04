@@ -57,7 +57,7 @@ for i in range(n):
         # Update departures and register client times
         client_times_register.extend( resto.update_departures(now, verbose=verbose) )
         # Update sits
-        resto.update_sits(  queue, now, verbose=verbose )
+        resto.update_sits(now, queue, verbose=False)
         # Register queue state
         queue_states[i,j] =  queue.get_state() 
     # Simulation end
@@ -81,13 +81,13 @@ ax.legend(lines,legends,loc='best',fontsize='small',shadow=True,facecolor='paleg
 plt.grid("on")
 
 # Plot histograms of time of arrival, time of sit and living time
-#Aux.plot_datetime_histogram(times=[ times[1] for times in client_times_register ], step=5, normalizer=n, title='Arrival time',show=False)
-#Aux.plot_datetime_histogram(times=[ times[2] for times in client_times_register ], step=5, normalizer=n, title='Sit time',show=False)
-#Aux.plot_datetime_histogram(times=[ times[3] for times in client_times_register ], step=5, normalizer=n, title='Living time',show=False)
-Aux.plot_timedelta_histogram(times=[ times[4] for times in client_times_register ], step=5, normalizer=1, title='Waiting time',show=True)
+Aux.plot_datetime_histogram(times=[ times[1] for times in client_times_register ], step=5, normalizer=n, title='Arrival time',show=False)
+Aux.plot_datetime_histogram(times=[ times[2] for times in client_times_register ], step=5, normalizer=n, title='Sit time',show=False)
+Aux.plot_datetime_histogram(times=[ times[3] for times in client_times_register ], step=5, normalizer=n, title='Living time',show=False)
+#Aux.plot_timedelta_histogram(times=[ times[4] for times in client_times_register ], step=5, normalizer=1, title='Waiting time',show=True)
 #Aux.plot_timedelta_histogram(times=[ times[5] for times in client_times_register ], step=5, normalizer=1, title='Sit time',show=False)
-#Aux.plot_timedelta_histogram(times=[ times[6] for times in client_times_register ], step=5, normalizer=1, title='Living time',show=False)
+#Aux.plot_timedelta_histogram(times=[ times[6] for times in client_times_register ], step=5, normalizer=1, title='Total time',show=False)
 
-
+#print( [times[4] for times in client_times_register ][1:10] )
 
 plt.show()

@@ -50,11 +50,9 @@ def plot_datetime_histogram(times, step, strftime_formatter="%H:%M", density=Fal
 def plot_timedelta_histogram(times, step, strftime_formatter="%H:%M", density=False, normalizer=1,title="",show=True ):
 
     times.sort()
-    print(len(times))
-    bins = np.arange( (times[0]).total_seconds() - (60*(step/2)), (times[-1]).total_seconds() + (60*(step/2)), step*60)
-    times = [time.total_seconds() for time in times]
+    bins = np.arange(start=(times[0]).total_seconds() - (60.0*(step/2)),stop=(times[-1]).total_seconds() + (60.0*(step/2)),step=step*60.0)
 
-    counts, _ = np.histogram( times, bins=bins, density=density)
+    counts, _ = np.histogram([time.total_seconds() for time in times], bins=bins, density=density)
     counts = counts/normalizer
 
     fig, ax = plt.subplots(figsize=(10, 6.5))
