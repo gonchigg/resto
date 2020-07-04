@@ -41,19 +41,13 @@ def calc_probs(nows, queue, resto, time_max = dt.timedelta(hours=1,minutes=30), 
             probs: numpy array of (quantity of clients x length of nows).
                 Returns the probability for each client of the queue of being sit at the correspondent time with nows vector.
     """
-    def print_group(clients):
-        """ Auxiliar function, used for printing pretty a group of clients
-        """
-        x = PrettyTable()
-        x.title = "Group"
-        x.field_names = ["numb", "name", "cant", "code"]
-        for i, client in enumerate(clients):
-            x.add_row([i, client.name, client.cant, client.code])
-        print(x)
 
     if verbose: print("Calculating probabilities ...")
-    if vverbose and queue.queue : print("    queue looks:")
+    if vverbose and queue.queue : print("Queue:")
     if vverbose and queue.queue : queue.print_queue()
+
+    if vverbose : print("Resto:")
+    if vverbose: resto.print_resto()
 
     # we don't want to calculate probabilities further away than time_max, for default 1:30 hours
     nows = _check_time_max(nows,time_max,resto.time_step)
@@ -63,8 +57,7 @@ def calc_probs(nows, queue, resto, time_max = dt.timedelta(hours=1,minutes=30), 
     probs = np.zeros(shape=(len(queue.queue),len(nows)))
     for i in range(len(queue.queue)):
         clients = queue.queue[0:i+1]
-        if vverbose: print(f"    calculating probs for clients:")
-        if vverbose: print_group(clients)
+        if vverbose: print(f"Calculating probs for client: {clients[-1].name}")
         probs[i] = calc_prob(nows,clients,resto,timeit,debug,verbose,vverbose)
     return probs
 
@@ -75,7 +68,7 @@ def calc_prob(nows,clients,resto,timeit=False,debug=False,verbose=False,vverbose
     # List all possible ways of sitting the group of clients
     # ------------------------------------------------------------------------------------------
     tree = Tree(clients,resto.tables,timeit,debug)
-    if vverbose: print("    Posible ways of sitting")
+    if vverbose: print("Posible ways of sitting")
     if vverbose: tree.print_branches()
     # ------------------------------------------------------------------------------------------
     # Calculate probabilities for each time
@@ -364,7 +357,7 @@ class Tree:
     def print_branches(self, title="", timeit=False, debug=False):
         x = PrettyTable()
         x.title = title
-        field_names = ["branche"]
+        field_names = ["branch #"]
         for table in self.tables_of_interest:
             field_names.append(f"{table.name}-{table.capacity}")
         x.field_names = field_names

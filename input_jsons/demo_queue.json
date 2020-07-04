@@ -1,0 +1,10 @@
+{
+    "clients":[
+        {"name":"Mike"        ,"cant":2},
+        {"name":"John"        ,"cant":4},
+        {"name":"Will"        ,"cant":3},
+        {"name":"Ron"         ,"cant":2},
+        {"name":"Harry"       ,"cant":3}
+    ],
+    "cant_clients":5
+}

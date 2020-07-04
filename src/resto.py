@@ -78,7 +78,7 @@ class Queue:
     def __init__(self):
         self.queue = []
         self.arrivals_register = None
-        self.colors =  ['crimson','darkgoldenrod','hotpink','teal','olivedrab','peru','violet','forestgreen','chocolate','firebrick','lightblue','khaki','salmon','orchid','springgreen','maroon','fuchsia','mediumorchid','turquoise','crimson','darkslategrey']
+        self.colors =  ['crimson','darkgoldenrod','hotpink','teal','olivedrab','peru','violet','forestgreen','chocolate','firebrick','khaki','salmon','orchid','springgreen','maroon','fuchsia','mediumorchid','turquoise','crimson','darkslategrey']
         self.counter = 0
 
     def add_client(self, cant, name=None, t_arrival=dt.datetime.today()):
@@ -119,7 +119,7 @@ class Queue:
     def print_queue(self):
         x = PrettyTable()
         x.title = "Queue"
-        x.field_names = ["numero", "name", "cantidad", "codigo"]
+        x.field_names = ["#", "name", "quantity", "code"]
         for i, client in enumerate(self.queue):
             x.add_row([i, client.name, client.cant, client.code])
         print(x)
@@ -158,10 +158,9 @@ class Resto:
         for i, table in enumerate(self.tables):
             if table.status == "taken":
                 if ((now - table.t_in).total_seconds()) / 60 > self.departures[i][0]:
-                    if verbose:
-                        print(f"    Table:{table.name} has stand up, with client:{table.client.name} at:{t_out}")
                     table.t_out = table.t_in + dt.timedelta(minutes=self.departures[i][0])
-                    
+                    if verbose:
+                        print(f"    Table:{table.name} has stand up, with client:{table.client.name} at:{table.t_out}")
                     departures.append( (table.client.cant, table.client.t_arrival, table.t_in, table.t_out, table.t_in - table.client.t_arrival, table.t_out - table.t_in, table.t_out - table.client.t_arrival) )
                     
                     (self.departures[i]).pop(0)
@@ -188,6 +187,8 @@ class Resto:
                         table.status, table.t_in, table.client = ("taken",t_in,client)
                         sits.append(table)
                         if verbose: print(f"    Client:{client.name} sit down in table:{table.name}")
+                        # now we must remove this table from the empty_tables
+                        empty_tables = [ _table for _table in empty_tables if _table!=table]
                     else:  # If the Client doesn´t sit it will be in the new_queue if not he will not be
                         new_queue.append(client)
                         if verbose: print(f"    No tables available (of:{client.cant}) for client:{client.name}")
@@ -251,7 +252,7 @@ def load_resto(file="input_jsons/resto.json",smooth_hist=True, cant_tables=20):
     # Load Tables
     i = 0
     if cant_tables > resto_dic["cant_tables"]:
-        print(f"ERROR: Max_tables:{resto['cant_tables']}, proceding with less tables")
+        print(f"ERROR: Max_tables:{resto_dic['cant_tables']}, proceding with less tables")
     while i < cant_tables and i < resto_dic["cant_tables"]:
         table = resto_dic["tables"][i]
         time = dt.datetime.strptime(table["t_in"], "%H:%M")
@@ -261,7 +262,7 @@ def load_resto(file="input_jsons/resto.json",smooth_hist=True, cant_tables=20):
             capacity=table["capacity"],
             status=table["status"],
             t_in=time,
-            t_out=now,
+            t_out=time,
             hist_id=table["hist_id"],
             client=None,
         )
